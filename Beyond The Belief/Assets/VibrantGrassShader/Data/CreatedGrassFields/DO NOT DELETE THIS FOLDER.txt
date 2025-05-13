@@ -1,0 +1,1 @@
+Do not delete this folder, it is used by script to store files that are created while using this asset. 

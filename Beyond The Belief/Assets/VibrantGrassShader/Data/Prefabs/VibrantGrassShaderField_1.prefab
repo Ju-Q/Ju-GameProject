@@ -1,0 +1,437 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &3200218695672810427
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3200218695672810428}
+  - component: {fileID: 3200218695672810430}
+  - component: {fileID: 7842840380804283533}
+  - component: {fileID: 793102062231559552}
+  m_Layer: 0
+  m_Name: VibrantGrassShaderField_1
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3200218695672810428
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3200218695672810427}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 3200218696733818292}
+  m_Father: {fileID: 0}
+  m_RootOrder: 0
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: -0.04}
+--- !u!114 &3200218695672810430
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3200218695672810427}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 36fd293eb9aa77a4ca5915ef1d0dfb73, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ResetMeshAndWrap: 0
+  DeleteThisGrassField: 0
+  CreatedAssets: []
+  ColliderForSplatMap: {fileID: 3200218696733818291}
+  GrassMeshObject: {fileID: 3200218696733818291}
+  MainControlObject: {fileID: 0}
+  heightTexture: {fileID: 0}
+  shadowTexture: {fileID: 0}
+  colorTexture: {fileID: 0}
+  groundNormalTexture: {fileID: 0}
+  noMeshRootsHeightsTexture: {fileID: 0}
+  SVGMeshMaster: {fileID: 3200218696733818296}
+  CircularDirections:
+  - {x: -0.00000004371139, y: 0, z: 1}
+  - {x: 0.38268343, y: 0, z: 0.9238795}
+  - {x: 0.70710677, y: 0, z: 0.70710677}
+  - {x: 0.9238795, y: 0, z: 0.38268346}
+  - {x: 1, y: 0, z: -0}
+  - {x: 0.9238795, y: 0, z: -0.38268346}
+  - {x: 0.70710677, y: 0, z: -0.70710677}
+  - {x: 0.38268343, y: 0, z: -0.9238795}
+  - {x: -0.00000004371139, y: 0, z: -1}
+  - {x: -0.3826834, y: 0, z: -0.92387956}
+  - {x: -0.70710677, y: 0, z: -0.70710677}
+  - {x: -0.9238795, y: 0, z: -0.3826835}
+  - {x: -1, y: 0, z: 0.00000008742278}
+  - {x: -0.9238795, y: 0, z: 0.38268343}
+  - {x: -0.7071068, y: 0, z: 0.7071067}
+  - {x: -0.38268358, y: 0, z: 0.9238795}
+  TexPaintCollider: {fileID: 0}
+  OriginalShadowTexture: {fileID: 2800000, guid: de42b8edf298a2d4a98024230a063d14, type: 3}
+  OriginalHeightTexture: {fileID: 2800000, guid: ca7868e5fb83bff4796ee4611259367b, type: 3}
+  OriginalColorTexture: {fileID: 2800000, guid: 026787dd551bde34e9fa726b294169e5, type: 3}
+  OriginalGroundNormalTexture: {fileID: 2800000, guid: 738af14e2fa58564f9a614b2499cf5d6, type: 3}
+  OriginalNoMeshRootsHeightsTexture: {fileID: 2800000, guid: b20321e555675934daf0c5fde3dd6ea5, type: 3}
+  SVGMShadowsMaster: {fileID: 5666722793327745935}
+  SVGMHeightMaster: {fileID: 5724738682835375272}
+  SVGMColorTextureMaster: {fileID: 6086748956431803757}
+  GrassMeshWrapScript: {fileID: 8468204341221480590}
+  GrassFieldPositionsGrid: []
+  GrassFieldGroundPositionsGrid: []
+  GroundAverageNormals: []
+  GrassFieldNormalUVs: []
+  VGSMC: {fileID: 0}
+  CreateAndAssignTextures: 0
+  GrassCloseTransparency: 1
+  GrassMeshRenderer: {fileID: 3200218696733818297}
+  grassFieldJustSpawned: 1
+  SVGMCTextureDrawing: {fileID: 0}
+  GotFurthestVerticesAfterWrapping: 0
+  CircularDirectionsOldLength: 16
+  OldLocalPosition: {x: 0, y: 0, z: 0}
+  OldLocalEulerAngles: {x: -0, y: 0, z: 0}
+  OldLocalScale: {x: 1, y: 1, z: 1}
+  CreateNormalTexture: 0
+  CreateHeightTexture: 0
+  CreateNoMeshRootsHeightTexture: 0
+--- !u!114 &7842840380804283533
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3200218695672810427}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 277f299d3ef226f4abbbe77bba87392e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  grassShaderMaster: {fileID: 3200218695672810430}
+  Wrap: 0
+  WrapCutMeshes: 0
+  CutOutOfGroundMeshWhenWrapping: 1
+  ShowDebugs: 0
+  GrassGroundLayers:
+    serializedVersion: 2
+    m_Bits: 1024
+  MaximumIterationsPerFrame: 9999
+--- !u!114 &793102062231559552
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3200218695672810427}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3ef018611ee9af343b3a94796cd729b6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  GrassFieldBasePrefab: {fileID: 3200218695672810427}
+  ControlArrowPrefab: {fileID: 4192720553296874819, guid: b1b83a94283b8d54787258d5ec7c9bec, type: 3}
+  ControlArrows: []
+  ControlArrowsHeight: 10
+  ControlArrowsScale: 0.2
+  ControlArrowsDistance: 5
+  VGSMC: {fileID: 0}
+--- !u!1 &3200218696733818291
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3200218696733818292}
+  - component: {fileID: 3200218696733818298}
+  - component: {fileID: 3200218696733818297}
+  - component: {fileID: 3200218696733818296}
+  - component: {fileID: 3200218696733818295}
+  - component: {fileID: 3200218696733818294}
+  - component: {fileID: 3200218696733818293}
+  - component: {fileID: 8468204341221480590}
+  - component: {fileID: 5666722793327745935}
+  - component: {fileID: 6086748956431803757}
+  - component: {fileID: 5724738682835375272}
+  - component: {fileID: 4379930570322969205}
+  - component: {fileID: 909427633882158935}
+  - component: {fileID: 6212146666411798245}
+  m_Layer: 0
+  m_Name: GrassMesh
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3200218696733818292
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3200218696733818291}
+  m_LocalRotation: {x: 0.000000021855694, y: 0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3200218695672810428}
+  m_RootOrder: 0
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &3200218696733818298
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3200218696733818291}
+  m_Mesh: {fileID: -3160032699101146223, guid: bcbec0564a163ce47ab4b432a6ee7285, type: 3}
+--- !u!23 &3200218696733818297
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3200218696733818291}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 0
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 0}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &3200218696733818296
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3200218696733818291}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c80cc69b01bc4458e8d5df113d2ad6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  GrassShaderMasterObject: {fileID: 3200218695672810427}
+  DrawShader: {fileID: 4800000, guid: c397db0120fc5c645ae3ae4e3b35efbb, type: 3}
+  BrushTextureShader: {fileID: 4800000, guid: 9ff5f32b9d34ca84e8ccca3f1aab3c1f, type: 3}
+  MainMatInstanced: {fileID: 0}
+  OpaqueMatInstanced: {fileID: 0}
+  SVGMainControls: {fileID: 0}
+--- !u!114 &3200218696733818295
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3200218696733818291}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 905cbc0ee08688f48b390b1e446b1c85, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  GrassLandShaderMasterObject: {fileID: 3200218695672810427}
+  _drawShader: {fileID: 4800000, guid: 8a3f650ef9162244993d99b1f316a451, type: 3}
+  DebugSplatMap: 0
+--- !u!114 &3200218696733818294
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3200218696733818291}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ab5ecfa0b9e89d4b8cf00541a6e5797, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  GrassShaderMasterObject: {fileID: 3200218695672810427}
+  _floofDrawShader: {fileID: 4800000, guid: bf01ca860cdbd4a4aaf28501fb8109ab, type: 3}
+  DebugSplatMap: 0
+--- !u!114 &3200218696733818293
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3200218696733818291}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 38f01c68b5891484da79c3fdf039e23f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  GrassShaderMasterObject: {fileID: 3200218695672810427}
+--- !u!114 &8468204341221480590
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3200218696733818291}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 664f16c6bf2a8644e80133b80dd9d306, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  createdMesh: {fileID: 0}
+  grassShaderMaster: {fileID: 3200218695672810430}
+  grassShaderWrapMaster: {fileID: 7842840380804283533}
+  newFolderName: GrassMesh
+  enableCutting: 1
+  VGSMC: {fileID: 0}
+  Wrapping: 0
+  ShowDebug: 0
+  meshFilter: {fileID: 3200218696733818298}
+  CutWithHeightTexture: 0
+  CutWithResetCutMeshes: 0
+  RootHeightTextureSize: 1024
+  RootHeightsPainterShader: {fileID: 4800000, guid: 42a3dd0e337dd3d44bc93f562d04fb6b, type: 3}
+  TextureColorSoftenerShader: {fileID: 4800000, guid: 7cf47b4ed07c0714a9410b1a6d12383d, type: 3}
+  RootHeightsPainterMat: {fileID: 0}
+  TextureColorSoftenerMat: {fileID: 0}
+  SmoothingStrength: 0
+--- !u!114 &5666722793327745935
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3200218696733818291}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3e41735fcd1f7d4488ed2d14eddd9301, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ShadowRenderTexture: {fileID: 0}
+  SVGMC: {fileID: 0}
+--- !u!114 &6086748956431803757
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3200218696733818291}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8fa7c980d2621624f81eb534313ddc4f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ColorRenderTexture: {fileID: 0}
+  SVGMC: {fileID: 0}
+--- !u!114 &5724738682835375272
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3200218696733818291}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1e7af3c47a897614b96e60523bae4917, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  HeightRenderTexture: {fileID: 0}
+  SVGMC: {fileID: 0}
+--- !u!114 &4379930570322969205
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3200218696733818291}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2cac7d6e35ff6894a88fe0dd053c1aa6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  MaximumIterationsPerFrame: 9999
+  GSWrap: {fileID: 8468204341221480590}
+  NewMesh: {fileID: 0}
+  HeightCutThreshold: 0
+--- !u!114 &909427633882158935
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3200218696733818291}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d3f6435b67b90e848b3ea287b59dc838, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  VGSFieldCreator: {fileID: 793102062231559552}
+  VertexNormalPainterShader: {fileID: 4800000, guid: 5cc19781343c1914f8458c50fab5b32c, type: 3}
+  TextureColorSmootherShader: {fileID: 4800000, guid: 7cf47b4ed07c0714a9410b1a6d12383d, type: 3}
+  SmoothingStrength: 10
+  _targetRT: {fileID: 0}
+  VertexNormalPainterMat: {fileID: 0}
+  TextureColorSmootherMat: {fileID: 0}
+  GrassCorners:
+  - {x: 0, y: 0, z: 0}
+  - {x: 0, y: 0, z: 0}
+  - {x: 0, y: 0, z: 0}
+  - {x: 0, y: 0, z: 0}
+  AmountOfRaysPerLine: 50
+  grassShaderMaster: {fileID: 3200218695672810430}
+  GrassMeshWrap: {fileID: 8468204341221480590}
+  GSWrapMaster: {fileID: 7842840380804283533}
+  GSMeshMaster: {fileID: 3200218696733818296}
+  Debugging: 0
+  TextureSize: 64
+--- !u!114 &6212146666411798245
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3200218696733818291}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1932ec418a3a0a447a48d9e3c39db15e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  GrassLandShaderMasterObject: {fileID: 3200218695672810427}
+  DetectedLightObject: 0
+  NeedToApplyLight: 0
+  DetectedInteractObject: 0
+  LightObjectActiveAndEnabled: 0
+  LightObjectActiveAndEnabledOld: 0

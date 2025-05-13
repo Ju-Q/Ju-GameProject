@@ -1,0 +1,3 @@
+Third-party components with dependent licenses :
+-The 2 images ("VibrantGrassShaderPerlinNoise1.png" and "VibrantGrassShaderPerlinNoise2.png") were created using a Noise Generator (Perlin Noise Maker by blackears on Github.com)
+-Unity-SerializableDictionary by azixMcAze on Github.com 

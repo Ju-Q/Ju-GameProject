@@ -1,0 +1,5 @@
+	To Copy the material properties of the preset and paste them on your created material : 
+1/ Select your preset (In the correct Pipeline Folder) 
+2/ In the Inspector, Right click at the very top (where you can select the Shader), and click "Copy Material Properties"
+3/ In MainControls - Visuals, double click "Created Material"
+4/ In the Inspector, Right click at the very top (where you can select the Shader), and click "Paste Material Properties"
