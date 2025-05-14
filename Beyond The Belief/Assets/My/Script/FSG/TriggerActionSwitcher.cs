@@ -5,7 +5,7 @@ using UnityEngine;
 public class TriggerActionSwitcher: MonoBehaviour
 {
     public string targetTag = "ActionTrigger";    // 触发区域的标签
-    public string animationTriggerName = "SitTrigger";  // Animator 中的触发器参数
+    public string animationBoolName = "SitBool";  // Animator 中的触发器参数
 
     private Animator animator;
 
@@ -22,7 +22,7 @@ public class TriggerActionSwitcher: MonoBehaviour
     {
         if (other.CompareTag(targetTag))
         {
-            animator.SetTrigger(animationTriggerName);
+            animator.SetBool(animationBoolName,true);
             Debug.Log("触发了动作切换！");
         }
     }
