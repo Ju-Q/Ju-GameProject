@@ -5,26 +5,29 @@ using UnityEngine.UI;
 public class PlayerHealthSlider : MonoBehaviour
 {
     [Header("UI Components")]
-    public Slider healthSlider;          // 血条Slider，value范围0~1，初始1
-    public Image bloodImage;             // 跟随血条变化透明度的图片（alpha 0~255）
-    public Image blackoutImage;          // 黑屏Image，黑屏时alpha变化
+    public Slider healthSlider;
+    public Image bloodImage;
+    public Image blackoutImage;
 
     [Header("Timing Settings")]
-    public float decreaseDuration = 5f; // 进入TriggerBox后5秒匀速降到0
-    public float recoverDuration = 1f;  // 离开TriggerBox后1秒匀速恢复到1
+    public float decreaseDuration = 5f;
+    public float recoverDuration = 1f;
 
     [Header("Blackout Settings")]
-    public float blackoutFadeInTime = 3f;   // 黑屏淡入时间（3秒）
-    public float blackoutDuration = 5f;     // 完全黑屏停留时间（5秒）
-    public float blackoutFadeOutTime = 2f;  // 黑屏淡出时间（2秒）
+    public float blackoutFadeInTime = 3f;
+    public float blackoutDuration = 5f;
+    public float blackoutFadeOutTime = 2f;
 
     [Header("Audio Settings")]
-    public AudioSource deathAudioSource;  // 死亡BGM播放器，需指定
+    public AudioSource deathAudioSource;
 
     private bool isInTrigger = false;
     private bool isDead = false;
-
     private Coroutine changeHealthCoroutine;
+
+    [Header("Character Components")]
+    public Animator playerAnimator;             // 角色Animator
+    public Transform playerModel;               // 模型Transform（角色模型作为子对象）
 
     private void Start()
     {
@@ -39,7 +42,7 @@ public class PlayerHealthSlider : MonoBehaviour
 
     private void Update()
     {
-        // 控制死亡音乐音量，音量随healthSlider.value线性变化
+        // 控制死亡音乐音量
         if (deathAudioSource != null)
         {
             if (healthSlider.value < 1f && !deathAudioSource.isPlaying)
@@ -49,13 +52,13 @@ public class PlayerHealthSlider : MonoBehaviour
 
             if (deathAudioSource.isPlaying)
             {
-                if (isDead) // 死亡后声音停止
+                if (isDead)
                 {
                     deathAudioSource.Stop();
                 }
                 else
                 {
-                    deathAudioSource.volume = 1f - healthSlider.value; // value从1降到0，音量从0升到1
+                    deathAudioSource.volume = 1f - healthSlider.value;
                     if (healthSlider.value >= 1f)
                         deathAudioSource.Stop();
                 }
@@ -113,6 +116,13 @@ public class PlayerHealthSlider : MonoBehaviour
             if (value <= 0f && !isDead)
             {
                 isDead = true;
+
+                // 播放死亡动画
+                if (playerAnimator != null)
+                {
+                    playerAnimator.SetTrigger("MarshDie");
+                }
+
                 StartCoroutine(StartBlackout());
                 yield break;
             }
@@ -126,6 +136,13 @@ public class PlayerHealthSlider : MonoBehaviour
         if (healthSlider.value <= 0f && !isDead)
         {
             isDead = true;
+
+            // 播放死亡动画
+            if (playerAnimator != null)
+            {
+                playerAnimator.SetTrigger("MarshDie");
+            }
+
             StartCoroutine(StartBlackout());
         }
     }
@@ -134,7 +151,7 @@ public class PlayerHealthSlider : MonoBehaviour
     {
         if (bloodImage != null)
         {
-            float alpha = 1f - healthSlider.value; // value=1 alpha=0; value=0 alpha=1
+            float alpha = 1f - healthSlider.value;
             Color c = bloodImage.color;
             c.a = alpha;
             bloodImage.color = c;
@@ -153,22 +170,39 @@ public class PlayerHealthSlider : MonoBehaviour
             yield return null;
         }
 
-        // 黑屏完全后立即执行复活操作（恢复血量和隐藏受伤图）
+        // 黑屏完全
+        blackoutImage.color = Color.black;
+
+        // 设置血量、隐藏受伤UI
         healthSlider.value = 1f;
         UpdateBloodImageAlpha();
 
-        // 角色立刻归位
+        // 重置玩家到重生点
         Transform respawnPoint = RespawnManager.Instance.GetCurrentRespawnPoint();
         if (respawnPoint != null)
         {
             transform.position = respawnPoint.position;
         }
 
-        // 完全黑屏
-        blackoutImage.color = Color.black;
+        // 播放 Rebirth 动画
+        if (playerAnimator != null)
+        {
+            playerAnimator.SetTrigger("Rebirth");
+        }
 
-        // 等待黑屏停留时间
+     
+
+        // 黑屏停留
         yield return new WaitForSeconds(blackoutDuration);
+
+        // 等待动画开始（或插入一点延迟），再归位模型
+        yield return new WaitForSeconds(0.1f); // 可根据动画设置改成 0.2f~0.3f
+
+        if (playerModel != null)
+        {
+            playerModel.localPosition = Vector3.zero;
+            playerModel.localRotation = Quaternion.identity;
+        }
 
         // 黑屏淡出
         elapsed = 0f;
@@ -180,13 +214,13 @@ public class PlayerHealthSlider : MonoBehaviour
             yield return null;
         }
 
-        // 完成淡出，解除死亡状态
+        // 清除死亡状态
         isDead = false;
 
-        // 停止死亡音乐
         if (deathAudioSource != null && deathAudioSource.isPlaying)
         {
             deathAudioSource.Stop();
         }
     }
+
 }
