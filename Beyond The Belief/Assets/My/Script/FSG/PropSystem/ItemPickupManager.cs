@@ -12,7 +12,6 @@ public class ItemPickupManager : MonoBehaviour
 
     private void Update()
     {
-        // 当玩家按下F键时尝试拾取
         if (Input.GetKeyDown(KeyCode.F))
         {
             TryPickupItem();
@@ -29,44 +28,45 @@ public class ItemPickupManager : MonoBehaviour
 
             if (target.CompareTag("PropA"))
             {
-                if (!hasPickedPropA)
-                {
-                    hasPickedPropA = true;
-                    propACount = 1;
-                    Debug.Log("首次拾取了 PropA，获得3点技能点");
+                hasPickedPropA = true;
+                propACount++;
 
-                    if (SkillPointManager.Instance != null)
+                if (SkillPointManager.Instance != null)
+                {
+                    if (propACount >= 3)
                     {
+                        SkillPointManager.Instance.maxSkillPoints = 6;
+                        SkillPointManager.Instance.SetSkillPoints(6);
+                        Debug.Log("拾取了第3个 PropA，技能点上限提高至6并获得满点");
+                    }
+                    else
+                    {
+                        SkillPointManager.Instance.maxSkillPoints = 3;
                         SkillPointManager.Instance.SetSkillPoints(3);
+                        Debug.Log("拾取了 PropA，技能点恢复为3点");
                     }
                 }
-                else
-                {
-                    Debug.Log("已经拾取过 PropA，无法再次拾取");
-                }
 
-                Destroy(target); // 或改为 target.SetActive(false);
-                return; // 只拾取一个道具
+                Destroy(target);
+                return;
             }
             else if (target.CompareTag("PropB"))
             {
-                // 如果已经通过 PropA 获得了技能点才能拾取 PropB
                 if (!hasPickedPropA)
                 {
                     Debug.Log("请先拾取 PropA 才能拾取 PropB");
                     return;
                 }
 
-                // 拾取 PropB 道具并添加技能点（上限为3）
                 if (SkillPointManager.Instance != null && SkillPointManager.Instance.currentSkillPoints < SkillPointManager.Instance.maxSkillPoints)
                 {
-                    Debug.Log("拾取了一个 PropB");
                     SkillPointManager.Instance.AddSkillPoint();
-                    Destroy(target); // 或改为 target.SetActive(false);
+                    Debug.Log("拾取了一个 PropB");
+                    Destroy(target);
                 }
                 else
                 {
-                    Debug.Log("PropB 技能点已满，无法拾取。");
+                    Debug.Log("PropB 技能点已满，无法拾取");
                 }
                 return;
             }
@@ -75,7 +75,6 @@ public class ItemPickupManager : MonoBehaviour
 
     private void OnDrawGizmosSelected()
     {
-        // 可视化拾取范围
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireSphere(transform.position, pickupRange);
     }

@@ -19,7 +19,7 @@ public class PropBPickup : MonoBehaviour
         if (other.CompareTag("Player") && Input.GetKeyDown(KeyCode.F))
         {
             skillPointManager?.AddSkillPoint();
-            Destroy(gameObject);
+            //Destroy(gameObject);
         }
     }
 }

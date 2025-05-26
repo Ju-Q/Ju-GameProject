@@ -120,6 +120,7 @@ public class PlayerHealthSlider : MonoBehaviour
                 // 播放死亡动画
                 if (playerAnimator != null)
                 {
+                    playerAnimator.applyRootMotion = true;
                     playerAnimator.SetTrigger("MarshDie");
                 }
 
@@ -140,6 +141,7 @@ public class PlayerHealthSlider : MonoBehaviour
             // 播放死亡动画
             if (playerAnimator != null)
             {
+                playerAnimator.applyRootMotion = true;
                 playerAnimator.SetTrigger("MarshDie");
             }
 
@@ -187,6 +189,7 @@ public class PlayerHealthSlider : MonoBehaviour
         // 播放 Rebirth 动画
         if (playerAnimator != null)
         {
+            
             playerAnimator.SetTrigger("Rebirth");
         }
 
@@ -194,6 +197,7 @@ public class PlayerHealthSlider : MonoBehaviour
 
         // 黑屏停留
         yield return new WaitForSeconds(blackoutDuration);
+        playerAnimator.applyRootMotion = false;
 
         // 等待动画开始（或插入一点延迟），再归位模型
         yield return new WaitForSeconds(0.1f); // 可根据动画设置改成 0.2f~0.3f
@@ -220,6 +224,7 @@ public class PlayerHealthSlider : MonoBehaviour
         if (deathAudioSource != null && deathAudioSource.isPlaying)
         {
             deathAudioSource.Stop();
+            playerAnimator.applyRootMotion = false;
         }
     }
 

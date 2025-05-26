@@ -5,51 +5,37 @@ public class SkillPointManager : MonoBehaviour
 {
     public static SkillPointManager Instance;
 
-    [Header("技能点设置")]
-    public int maxSkillPoints = 3;
     public int currentSkillPoints = 0;
+    public int maxSkillPoints = 3;
+    public Image[] skillPointImages;
 
-    [Header("技能点图标")]
-    public Image[] skillPointImages; // 在Inspector中指定3个Image
-
-    [Header("技能释放设置")]
-    [Tooltip("按住鼠标左键多少秒后释放技能")]
-    public float holdTime = 2f;
-
+    private float holdTime = 2f;
     private float holdTimer = 0f;
+    private bool isHolding = false;
 
     private void Awake()
     {
-        // 单例模式
         if (Instance == null)
-        {
             Instance = this;
-        }
-        else
-        {
-            Destroy(gameObject);
-        }
-    }
-
-    private void Start()
-    {
-        UpdateSkillPointUI();
     }
 
     private void Update()
     {
-        if (currentSkillPoints > 0 && Input.GetMouseButton(0))
+        if (Input.GetMouseButton(0))
         {
+            isHolding = true;
             holdTimer += Time.deltaTime;
+
             if (holdTimer >= holdTime)
             {
                 UseSkillPoint();
                 holdTimer = 0f;
+                isHolding = false;
             }
         }
-
-        if (Input.GetMouseButtonUp(0))
+        else if (Input.GetMouseButtonUp(0))
         {
+            isHolding = false;
             holdTimer = 0f;
         }
     }
@@ -63,9 +49,9 @@ public class SkillPointManager : MonoBehaviour
         }
     }
 
-    public void SetSkillPoints(int count)
+    public void SetSkillPoints(int value)
     {
-        currentSkillPoints = Mathf.Clamp(count, 0, maxSkillPoints);
+        currentSkillPoints = Mathf.Clamp(value, 0, maxSkillPoints);
         UpdateSkillPointUI();
     }
 
@@ -74,9 +60,9 @@ public class SkillPointManager : MonoBehaviour
         if (currentSkillPoints > 0)
         {
             currentSkillPoints--;
-            Debug.Log("使用了一个技能点。剩余技能点：" + currentSkillPoints);
             UpdateSkillPointUI();
-            // TODO：添加技能释放的实际效果逻辑
+            Debug.Log("使用了一个技能点，剩余：" + currentSkillPoints);
+            // 后续技能释放效果逻辑可加在这里
         }
     }
 
