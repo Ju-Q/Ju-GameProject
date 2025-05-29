@@ -16,14 +16,13 @@ public class PushBoxController : MonoBehaviour
     private bool isPushing = false;
     private bool isBoxStillDetected = false;
 
-    private Animator animator;
+    public Animator animator;
     private CharacterController characterController;
 
     private float pushStartTime = 0f;
 
     void Start()
     {
-        animator = GetComponent<Animator>();
         characterController = GetComponent<CharacterController>();
     }
 
@@ -41,7 +40,7 @@ public class PushBoxController : MonoBehaviour
             HandlePushMovement();
 
             // ✅ 加入0.2秒退出缓冲
-            if (Time.time - pushStartTime > 0.2f)
+            if (Time.time - pushStartTime > 0.05f)
             {
                 float distanceToBox = Vector3.Distance(transform.position, currentBox.transform.position);
                 if (!isBoxStillDetected || distanceToBox > maxPushDistance)
@@ -50,7 +49,6 @@ public class PushBoxController : MonoBehaviour
                 }
             }
         }
-
     }
 
     void DetectBox()
@@ -89,13 +87,12 @@ public class PushBoxController : MonoBehaviour
         }
     }
 
-
-
     void EnterPushState()
     {
         isPushing = true;
-        pushStartTime = Time.time; // ← 这一句确保加入
-        animator.SetBool("IsPushing", true);
+        pushStartTime = Time.time;
+        animator.SetBool("IsPushing", false);
+        animator.SetBool("IsPushingIdle", true); // 进入推箱idle状态
 
         Vector3 boxDir = (currentBox.transform.position - transform.position).normalized;
         boxDir.y = 0;
@@ -104,11 +101,11 @@ public class PushBoxController : MonoBehaviour
         Debug.Log("进入推箱状态: " + currentBox.name);
     }
 
-
     void ExitPushState()
     {
         isPushing = false;
         animator.SetBool("IsPushing", false);
+        animator.SetBool("IsPushingIdle", false); // 退出推箱状态
         currentBox = null;
         Debug.Log("退出推箱状态");
     }
@@ -119,20 +116,24 @@ public class PushBoxController : MonoBehaviour
         float v = Input.GetAxis("Vertical");
         Vector3 inputDir = new Vector3(h, 0f, v);
 
-        if (inputDir.magnitude > 0.1f)
+        if (inputDir.magnitude > 0.01f)
         {
-            Vector3 moveDir = transform.forward * inputDir.z;
+            // 正在推动箱子移动
+            animator.SetBool("IsPushing", true);
+            animator.SetBool("IsPushingIdle", false);
+
+            Vector3 moveDir = transform.forward * inputDir.magnitude;
             Vector3 pushDir = moveDir.normalized * pushSpeed * Time.deltaTime;
 
             // 推动箱子和角色
             characterController.Move(pushDir);
             currentBox.transform.position += pushDir;
-
-            animator.speed = 1.0f; // 播放动画
         }
         else
         {
-            animator.speed = 0f; // 停止动画
+            // 没有移动输入，保持推箱idle状态
+            animator.SetBool("IsPushing", false);
+            animator.SetBool("IsPushingIdle", true);
         }
     }
 }

@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using StarterAssets;
+using System.Collections;
 using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.UI;
@@ -27,6 +28,7 @@ public class EnemyAI : MonoBehaviour
     public Transform playerModel;
     public Animator enemyAnimator;
     public Animator playerAnimator;
+    public ThirdPersonController Controller;
 
     [Header("攻击设置")]
     [Tooltip("抓住玩家的距离")]
@@ -190,6 +192,7 @@ public class EnemyAI : MonoBehaviour
         player.position = playerRespawnPoint.position;
         transform.position = startPosition;
         agent.Warp(startPosition);
+        Controller.isCrouching = false;
 
         // 关键修改：提前触发复活动画！
         if (playerAnimator != null)

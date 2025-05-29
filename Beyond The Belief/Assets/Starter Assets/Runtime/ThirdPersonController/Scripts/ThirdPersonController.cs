@@ -75,7 +75,7 @@ namespace StarterAssets
         private const float _threshold = 0.01f;
         private bool _hasAnimator = true;
 
-        private bool isCrouching = false;
+        public bool isCrouching = false;
 
         private void Awake()
         {
@@ -193,7 +193,7 @@ namespace StarterAssets
             {
                 _animator.SetFloat(_animIDSpeed, _animationBlend);
                 _animator.SetFloat(_animIDMotionSpeed, inputMagnitude);
-                
+
                 _animator.SetBool(_animIDCrouchWalk, isCrouching && _input.move.magnitude > 0);
             }
         }
@@ -293,7 +293,7 @@ namespace StarterAssets
                     }
 
                     _animator.SetBool(_animIDCrouch, isCrouching);
-                    
+
                 }
             }
         }
