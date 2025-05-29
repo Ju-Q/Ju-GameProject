@@ -1,45 +1,61 @@
-using System.Collections;
+ï»¿using System.Collections;
 using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.UI;
 
 public class EnemyAI : MonoBehaviour
 {
-    [Header("Ñ²ÂßÉèÖÃ")]
+    [Header("å·¡é€»è®¾ç½®")]
     public Transform[] patrolPoints;
+    [Tooltip("æ•Œäººå·¡é€»æ—¶çš„é€Ÿåº¦")]
     public float patrolSpeed = 2f;
     private int currentPatrolIndex = 0;
 
-    [Header("×·»÷ÉèÖÃ")]
+    [Header("è¿½å‡»è®¾ç½®")]
+    [Tooltip("ä¾¦æµ‹ä¸»è§’çš„è·ç¦»")]
     public float detectionRange = 10f;
+    [Tooltip("ä¾¦æµ‹ä¸»è§’çš„è§’åº¦ï¼ˆåº¦ï¼‰")]
+    public float detectionAngle = 60f; // âœ… æ–°å¢å¯è°ƒèŠ‚æ£€æµ‹è§’åº¦
+    [Tooltip("æ•Œäººè¿½å‡»ä¸»è§’æ—¶çš„é€Ÿåº¦")]
     public float chaseSpeed = 4f;
+    [Tooltip("ä¸¢å¤±ç›®æ ‡åè¿”å›å·¡é€»çš„ç­‰å¾…æ—¶é—´")]
     public float loseTargetTime = 3f;
     private float chaseTimer = 0f;
 
-    [Header("Ä¿±êÓë¶¯»­")]
+    [Header("ç›®æ ‡ä¸åŠ¨ç”»")]
     public Transform player;
-    public Transform playerModel;    // Ö÷½Ç Transform
-    public Animator enemyAnimator;          // µĞÈË Animator ÍÏÈë
-    public Animator playerAnimator;         // Ö÷½Ç Animator ÍÏÈë
+    public Transform playerModel;
+    public Animator enemyAnimator;
+    public Animator playerAnimator;
 
-    [Header("¹¥»÷ÉèÖÃ")]
-    public float catchDistance = 1.5f;       // ×¥²¶¾àÀë
-    public Image blackScreen;                // UI ºÚÆÁÍ¼Ïñ£¬ÀàĞÍÎª Image
+    [Header("æ”»å‡»è®¾ç½®")]
+    [Tooltip("æŠ“ä½ç©å®¶çš„è·ç¦»")]
+    public float catchDistance = 1.5f;
+    [Tooltip("é»‘å±UIç»„ä»¶")]
+    public Image blackScreen;
+    [Tooltip("é»‘å±æ·¡å…¥æ·¡å‡ºæ—¶é—´")]
     public float blackFadeDuration = 1f;
+    [Tooltip("é»‘å±ä¿æŒæ—¶é—´")]
     public float blackStayDuration = 3f;
-    public Transform playerRespawnPoint;     // Ö÷½ÇÖØÉúµã
+    [Tooltip("ç©å®¶é‡ç”Ÿç‚¹")]
+    public Transform playerRespawnPoint;
 
     private NavMeshAgent agent;
-    private Vector3 startPosition;           // µĞÈËÆğÊ¼Î»ÖÃ
-    private int state = 0;                   // 0: Ñ²Âß£¬1: ×·»÷£¬2: ¹¥»÷
+    private Vector3 startPosition;
+    private int state = 0; // 0:å·¡é€», 1:è¿½å‡», 2:æ”»å‡»
 
     void Start()
     {
         agent = GetComponent<NavMeshAgent>();
+        agent.acceleration = 10f;
+        agent.angularSpeed = 360f;
+
         startPosition = transform.position;
+        enemyAnimator.applyRootMotion = false;
 
         if (patrolPoints.Length > 0)
         {
+            currentPatrolIndex = GetClosestPatrolPointIndex();
             agent.SetDestination(patrolPoints[currentPatrolIndex].position);
         }
     }
@@ -50,9 +66,9 @@ public class EnemyAI : MonoBehaviour
 
         switch (state)
         {
-            case 0: // Ñ²Âß
+            case 0:
                 Patrol();
-                if (distanceToPlayer < detectionRange)
+                if (IsPlayerDetected(distanceToPlayer))
                 {
                     state = 1;
                     enemyAnimator.SetBool("isWalking", false);
@@ -60,29 +76,48 @@ public class EnemyAI : MonoBehaviour
                 }
                 break;
 
-            case 1: // ×·»÷
+            case 1:
                 ChasePlayer(distanceToPlayer);
                 break;
 
-            case 2: // ¹¥»÷×´Ì¬£¬²»ÒÆ¶¯
-                break;
+            case 2:
+                break; // æ”»å‡»çŠ¶æ€ç”±åç¨‹æ§åˆ¶
         }
 
         RotateTowardsMovement();
+    }
+
+    // æ£€æµ‹ç©å®¶æ˜¯å¦åœ¨è§†é‡å†…ï¼ˆè·ç¦»+è§’åº¦ï¼‰
+    bool IsPlayerDetected(float distanceToPlayer)
+    {
+        if (distanceToPlayer > detectionRange) return false;
+
+        Vector3 directionToPlayer = (player.position - transform.position).normalized;
+        float angleToPlayer = Vector3.Angle(transform.forward, directionToPlayer);
+
+        // è§’åº¦æ£€æµ‹
+        if (angleToPlayer > detectionAngle / 2f) return false;
+
+        // å°„çº¿æ£€æµ‹ï¼ˆé˜²æ­¢ç©¿å¢™ï¼‰
+        RaycastHit hit;
+        if (Physics.Raycast(transform.position + Vector3.up, directionToPlayer, out hit, detectionRange))
+        {
+            if (!hit.transform.CompareTag("Player")) return false;
+        }
+
+        return true;
     }
 
     void Patrol()
     {
         agent.speed = patrolSpeed;
 
-        // µ½´ïµ±Ç°Ñ²ÂßµãºóÇ°ÍùÏÂÒ»¸ö
         if (!agent.pathPending && agent.remainingDistance < 0.2f)
         {
             currentPatrolIndex = (currentPatrolIndex + 1) % patrolPoints.Length;
             agent.SetDestination(patrolPoints[currentPatrolIndex].position);
         }
 
-        // ÉèÖÃ¶¯»­
         enemyAnimator.SetBool("isWalking", true);
         enemyAnimator.SetBool("isRunning", false);
     }
@@ -94,36 +129,19 @@ public class EnemyAI : MonoBehaviour
 
         if (distance <= catchDistance)
         {
-            // ½øÈë¹¥»÷×´Ì¬
             state = 2;
             agent.isStopped = true;
             enemyAnimator.SetTrigger("Attack");
-
-            // Ö÷½Ç±»×¥¶¯»­
-            if (playerAnimator != null)
-            {
-                playerAnimator.applyRootMotion = true;
-                playerAnimator.SetTrigger("Caught");
-            }
-
-            StartCoroutine(HandlePlayerCaught());
+            playerAnimator.applyRootMotion = true;
+            if (playerAnimator != null) playerAnimator.SetTrigger("Caught");
+            StartCoroutine(HandlePlayerCaught()); // è§¦å‘æ•è·å¤„ç†
         }
-        else if (distance > detectionRange)
+        else if (!IsPlayerDetected(distance))
         {
-            // Èç¹û¾àÀëÌ«Ô¶£¬¿ªÊ¼¼ÆÊ±¶ªÊ§
             chaseTimer += Time.deltaTime;
             if (chaseTimer >= loseTargetTime)
             {
-                chaseTimer = 0f;
-                state = 0;
-                agent.isStopped = false;
-
-                // ÕÒµ½Àëµ±Ç°Î»ÖÃ×î½üµÄÑ²Âßµã
-                currentPatrolIndex = GetClosestPatrolPointIndex();
-                agent.SetDestination(patrolPoints[currentPatrolIndex].position);
-
-                enemyAnimator.SetBool("isRunning", false);
-                enemyAnimator.SetBool("isWalking", true);
+                ReturnToPatrol();
             }
         }
         else
@@ -132,7 +150,17 @@ public class EnemyAI : MonoBehaviour
         }
     }
 
-    // ×ªÏòµ±Ç°ÒÆ¶¯·½Ïò
+    void ReturnToPatrol()
+    {
+        chaseTimer = 0f;
+        state = 0;
+        agent.isStopped = false;
+        currentPatrolIndex = GetClosestPatrolPointIndex();
+        agent.SetDestination(patrolPoints[currentPatrolIndex].position);
+        enemyAnimator.SetBool("isRunning", false);
+        enemyAnimator.SetBool("isWalking", true);
+    }
+
     void RotateTowardsMovement()
     {
         if (agent.velocity.sqrMagnitude > 0.1f)
@@ -142,12 +170,12 @@ public class EnemyAI : MonoBehaviour
         }
     }
 
-    // ´¦ÀíÖ÷½Ç±»×¥ºóµÄºÚÆÁÂß¼­
+    // âœ… ä¿®æ”¹åçš„åç¨‹ï¼šæå‰è§¦å‘RebirthåŠ¨ç”»
     IEnumerator HandlePlayerCaught()
     {
-        yield return new WaitForSeconds(1f); // µÈ´ı¹¥»÷¶¯»­Íê³É
+        yield return new WaitForSeconds(1f); // ç­‰å¾…æ”»å‡»åŠ¨ç”»æ’­æ”¾
 
-        // ºÚÆÁµ­Èë
+        // é»‘å±æ·¡å…¥
         float t = 0f;
         Color originalColor = blackScreen.color;
         while (t < blackFadeDuration)
@@ -156,34 +184,37 @@ public class EnemyAI : MonoBehaviour
             blackScreen.color = new Color(originalColor.r, originalColor.g, originalColor.b, Mathf.Lerp(0f, 1f, t / blackFadeDuration));
             yield return null;
         }
-
-        // Í£ÁôºÚÆÁ
         blackScreen.color = new Color(originalColor.r, originalColor.g, originalColor.b, 1f);
-        yield return new WaitForSeconds(blackStayDuration);
 
-        // ÖØÖÃÎ»ÖÃ
+        // é‡ç½®ä½ç½®ï¼ˆæ­¤æ—¶å±å¹•å…¨é»‘ï¼‰
+        player.position = playerRespawnPoint.position;
+        transform.position = startPosition;
+        agent.Warp(startPosition);
+
+        // å…³é”®ä¿®æ”¹ï¼šæå‰è§¦å‘å¤æ´»åŠ¨ç”»ï¼
         if (playerAnimator != null)
         {
             playerAnimator.applyRootMotion = false;
-            playerAnimator.SetTrigger("Rebirth");
+            playerAnimator.SetTrigger("Rebirth"); // é»‘å±æœŸé—´è§¦å‘
         }
-        player.position = playerRespawnPoint.position;
 
-        transform.position = startPosition;
-        agent.Warp(startPosition); // Ç¿ÖÆ NavMesh ÖØÖÃ
-        agent.isStopped = false;
-        state = 0;
+        // é‡ç½®ç©å®¶å§¿åŠ¿
         playerModel.localPosition = Vector3.zero;
         playerModel.localRotation = Quaternion.identity;
         playerAnimator.SetBool("IsCrouching", false);
 
-        currentPatrolIndex = GetClosestPatrolPointIndex(); // »Øµ½×î½üÑ²Âßµã
-        agent.SetDestination(patrolPoints[currentPatrolIndex].position);
+        // é»‘å±ä¿æŒ
+        yield return new WaitForSeconds(blackStayDuration);
 
+        // æ¢å¤æ•Œäººå·¡é€»
+        agent.isStopped = false;
+        state = 0;
+        currentPatrolIndex = GetClosestPatrolPointIndex();
+        agent.SetDestination(patrolPoints[currentPatrolIndex].position);
         enemyAnimator.SetBool("isRunning", false);
         enemyAnimator.SetBool("isWalking", true);
 
-        // ºÚÆÁµ­³ö
+        // é»‘å±æ·¡å‡ºï¼ˆæ­¤æ—¶RebirthåŠ¨ç”»å·²åœ¨æ’­æ”¾ï¼‰
         t = 0f;
         while (t < blackFadeDuration)
         {
@@ -194,12 +225,10 @@ public class EnemyAI : MonoBehaviour
         blackScreen.color = new Color(originalColor.r, originalColor.g, originalColor.b, 0f);
     }
 
-    // ²éÕÒ×î½üÑ²ÂßµãË÷Òı
     int GetClosestPatrolPointIndex()
     {
         int closestIndex = 0;
         float closestDistance = Vector3.Distance(transform.position, patrolPoints[0].position);
-
         for (int i = 1; i < patrolPoints.Length; i++)
         {
             float distance = Vector3.Distance(transform.position, patrolPoints[i].position);
@@ -209,7 +238,19 @@ public class EnemyAI : MonoBehaviour
                 closestIndex = i;
             }
         }
-
         return closestIndex;
+    }
+
+    // å¯è§†åŒ–æ£€æµ‹èŒƒå›´ï¼ˆç¼–è¾‘å™¨è°ƒè¯•ç”¨ï¼‰
+    void OnDrawGizmosSelected()
+    {
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawWireSphere(transform.position, detectionRange);
+
+        Vector3 leftDir = Quaternion.Euler(0, -detectionAngle / 2, 0) * transform.forward;
+        Vector3 rightDir = Quaternion.Euler(0, detectionAngle / 2, 0) * transform.forward;
+        Gizmos.color = Color.red;
+        Gizmos.DrawRay(transform.position, leftDir * detectionRange);
+        Gizmos.DrawRay(transform.position, rightDir * detectionRange);
     }
 }

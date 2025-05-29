@@ -60,6 +60,11 @@ namespace StarterAssets
         private int _animIDStandToCrouch;
         private int _animIDCrouchToStand;
 
+        [Header("Crouch Settings")]
+        public float crouchHeight = 1.0f;  // 蹲下时的碰撞体高度
+        private float standingHeight;      // 保存原始高度
+        private Vector3 standingCenter;    // 保存原始中心点
+
 #if ENABLE_INPUT_SYSTEM
         private PlayerInput _playerInput;
 #endif
@@ -85,6 +90,11 @@ namespace StarterAssets
             _cinemachineTargetYaw = CinemachineCameraTarget.transform.rotation.eulerAngles.y;
             _controller = GetComponent<CharacterController>();
             _input = GetComponent<StarterAssetsInputs>();
+
+            // 新增：记录初始高度和中心点
+            standingHeight = _controller.height;
+            standingCenter = _controller.center;
+
 #if ENABLE_INPUT_SYSTEM
             _playerInput = GetComponent<PlayerInput>();
 #endif
@@ -269,13 +279,17 @@ namespace StarterAssets
                     {
                         //_animator.applyRootMotion = true;
                         _animator.SetTrigger(_animIDStandToCrouch);
-                        
+                        _controller.height = crouchHeight;
+                        _controller.center = new Vector3(0f, crouchHeight / 2f, 0f); // 中心点下移
+
                     }
                     else
                     {
                         //_animator.applyRootMotion = true;
                         _animator.SetTrigger(_animIDCrouchToStand);
-                        
+                        _controller.height = standingHeight;
+                        _controller.center = standingCenter;
+
                     }
 
                     _animator.SetBool(_animIDCrouch, isCrouching);
