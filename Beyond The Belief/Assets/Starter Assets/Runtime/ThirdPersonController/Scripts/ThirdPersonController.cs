@@ -65,6 +65,17 @@ namespace StarterAssets
         private float standingHeight;      // 保存原始高度
         private Vector3 standingCenter;    // 保存原始中心点
 
+        private bool _isTransitioningCrouch = false;
+        [Header("模型引用")]
+        public Transform characterModel; // 在 Inspector 拖入角色模型
+        [Header("站立动画时间")]
+        public float standUpAnimationTime = 1.0f; // 起立动画的预计时长（秒）
+        private float _standUpTimer = 0f;
+        private bool _isStandingUp = false;
+
+
+
+
 #if ENABLE_INPUT_SYSTEM
         private PlayerInput _playerInput;
 #endif
@@ -106,9 +117,27 @@ namespace StarterAssets
         private void Update()
         {
             HandleCrouchToggle();
+            HandleStandUpTimer(); // 新增计时器逻辑
             GroundedCheck();
             JumpAndGravity();
             Move();
+        }
+
+        private void HandleStandUpTimer()
+        {
+            if (_isStandingUp)
+            {
+                _standUpTimer -= Time.deltaTime;
+
+                // 倒计时结束，强制关闭 Root Motion 并归零
+                if (_standUpTimer <= 0f)
+                {
+                    _animator.applyRootMotion = false;
+                    _animator.transform.localPosition = Vector3.zero;
+                    _animator.transform.localRotation = Quaternion.identity;
+                    _isStandingUp = false;
+                }
+            }
         }
 
         private void LateUpdate()
@@ -267,34 +296,50 @@ namespace StarterAssets
             }
         }
 
+        // 在 HandleCrouchToggle 中仅触发动画
         private void HandleCrouchToggle()
         {
-            if (Keyboard.current.cKey.wasPressedThisFrame)
+            if (Keyboard.current.cKey.wasPressedThisFrame && !_isTransitioningCrouch)
             {
                 isCrouching = !isCrouching;
-
                 if (_hasAnimator)
                 {
                     if (isCrouching)
                     {
-                        //_animator.applyRootMotion = true;
+                        // 蹲下逻辑（不变）
+                        _animator.applyRootMotion = false;
                         _animator.SetTrigger(_animIDStandToCrouch);
                         _controller.height = crouchHeight;
-                        _controller.center = new Vector3(0f, crouchHeight / 2f, 0f); // 中心点下移
-
+                        _controller.center = new Vector3(0f, crouchHeight / 2f, 0f);
                     }
                     else
                     {
-                        //_animator.applyRootMotion = true;
+                        // 起立逻辑：启动计时器
+                        _animator.applyRootMotion = true; // 允许 Root Motion 影响位移
                         _animator.SetTrigger(_animIDCrouchToStand);
-                        _controller.height = standingHeight;
-                        _controller.center = standingCenter;
-
+                        _isStandingUp = true;
+                        _standUpTimer = standUpAnimationTime; // 设置倒计时
                     }
-
                     _animator.SetBool(_animIDCrouch, isCrouching);
-
                 }
+            }
+        }
+
+        // 动画事件调用的方法
+        // 动画事件调用的方法
+        public void OnCrouchToStandComplete()
+        {
+            _controller.height = standingHeight;
+            _controller.center = standingCenter;
+
+            // Reset model's local position and rotation
+            if (_animator != null)
+            {
+                _animator.applyRootMotion = false;
+                // Assuming your character model is a child of the GameObject with this script
+                Transform modelTransform = _animator.transform;
+                modelTransform.localPosition = Vector3.zero;
+                modelTransform.localRotation = Quaternion.identity;
             }
         }
 
