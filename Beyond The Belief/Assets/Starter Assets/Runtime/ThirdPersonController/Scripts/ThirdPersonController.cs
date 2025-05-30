@@ -70,8 +70,16 @@ namespace StarterAssets
         public Transform characterModel; // 在 Inspector 拖入角色模型
         [Header("站立动画时间")]
         public float standUpAnimationTime = 1.0f; // 起立动画的预计时长（秒）
+
+        [Header("平滑归零时间")]
+        public float smoothResetTime = 0.5f; // 位置/旋转归零的过渡时间
+
         private float _standUpTimer = 0f;
         private bool _isStandingUp = false;
+        private bool _isSmoothingReset = false; // 是否正在平滑归零
+        private Vector3 _startPosition; // 过渡起始位置
+        private Quaternion _startRotation; // 过渡起始旋转
+        private float _smoothResetTimer = 0f; // 平滑归零计时器
 
 
 
@@ -129,13 +137,34 @@ namespace StarterAssets
             {
                 _standUpTimer -= Time.deltaTime;
 
-                // 倒计时结束，强制关闭 Root Motion 并归零
-                if (_standUpTimer <= 0f)
+                // 倒计时结束，开始平滑归零
+                if (_standUpTimer <= 0f && !_isSmoothingReset)
                 {
-                    _animator.applyRootMotion = false;
-                    _animator.transform.localPosition = Vector3.zero;
-                    _animator.transform.localRotation = Quaternion.identity;
                     _isStandingUp = false;
+                    _isSmoothingReset = true;
+                    _smoothResetTimer = 0f;
+
+                    // 记录当前的位置和旋转，作为插值起点
+                    _startPosition = _animator.transform.localPosition;
+                    _startRotation = _animator.transform.localRotation;
+                }
+            }
+
+            // 平滑归零阶段
+            if (_isSmoothingReset)
+            {
+                _smoothResetTimer += Time.deltaTime;
+                float progress = Mathf.Clamp01(_smoothResetTimer / smoothResetTime);
+
+                // 使用 Lerp/Slerp 逐渐归零
+                _animator.transform.localPosition = Vector3.Lerp(_startPosition, Vector3.zero, progress);
+                _animator.transform.localRotation = Quaternion.Slerp(_startRotation, Quaternion.identity, progress);
+
+                // 过渡完成
+                if (progress >= 1f)
+                {
+                    _isSmoothingReset = false;
+                    _animator.applyRootMotion = false; // 完全归零后关闭 Root Motion
                 }
             }
         }
