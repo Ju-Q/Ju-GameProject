@@ -7,6 +7,7 @@ public class DialogueManager2 : MonoBehaviour
     private bool isCanvasActive = false;
     private bool isWaitingForInput = false;
     private bool hasDialogueBeenShown = false; // 记录对话是否已经显示过
+    public float showCanvasTime = 5f;
 
     private void Start()
     {
@@ -42,7 +43,7 @@ public class DialogueManager2 : MonoBehaviour
         isWaitingForInput = false;
 
         // 假设显示对话的逻辑（这里只显示提示文字或其他 UI 元素）
-        yield return new WaitForSeconds(5f); // 假设对话停留 5 秒
+        yield return new WaitForSeconds(showCanvasTime); // 假设对话停留 5 秒
 
         isWaitingForInput = true;
 

@@ -82,7 +82,6 @@ public class SkillManager : MonoBehaviour
             t -= Time.deltaTime;
             float normTime = Mathf.Clamp01(t / skillAnimLength);
             animator.Play(skillAnimationStateName, 0, normTime);
-            Debug.Log("²¥·Å" + skillAnimationStateName);
             yield return null;
         }
 

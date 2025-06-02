@@ -46,7 +46,7 @@ public class DialogueManager1 : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.Return))
         {
             // 检查输入是否可用
-            if (!inputLocked && Time.time - lastInputTime > inputCooldown)
+            if (!inputLocked)
             {
                 inputLocked = true;  // 锁定输入
                 lastInputTime = Time.time;
@@ -64,7 +64,7 @@ public class DialogueManager1 : MonoBehaviour
     }
 
     // 显示下一条对话
-      void ShowNextDialogue()
+    void ShowNextDialogue()
     {
         if (!isDialogueActive) return;
 
@@ -113,8 +113,9 @@ public class DialogueManager1 : MonoBehaviour
         typingCoroutine = StartCoroutine(TypeDialogue(dialogues[currentDialogueIndex]));
 
         // 更新角色头像
-        if (currentDialogueIndex < characterPortraits.Count && characterPortraits[currentDialogueIndex] != null)
+        if (currentDialogueIndex < characterPortraits.Count - 1 && characterPortraits[currentDialogueIndex] != null)
         {
+            Debug.Log("更新头像" + currentDialogueIndex);
             characterPortrait.sprite = characterPortraits[currentDialogueIndex];
             characterPortrait.enabled = true;
         }
@@ -126,6 +127,7 @@ public class DialogueManager1 : MonoBehaviour
         // 更新背景
         if (backgroundSprite != null)
         {
+            Debug.Log("更新background");
             backgroundImage.sprite = backgroundSprite;
             backgroundImage.enabled = true;
         }
@@ -160,6 +162,7 @@ public class DialogueManager1 : MonoBehaviour
             typingCoroutine = null;
         }
 
+        Debug.Log("停止打字");
         dialogueText.text = dialogues[currentDialogueIndex];
         isTyping = false;
     }
