@@ -81,7 +81,16 @@ namespace StarterAssets
         private Quaternion _startRotation; // 过渡起始旋转
         private float _smoothResetTimer = 0f; // 平滑归零计时器
 
+        [Header("Skill Charge")]
+        public float chargeTimeThreshold = 1.15f; // 充能所需时间
+        private float chargeTimer = 0f;
+        private bool isCharging = false;
+        private bool isChargeComplete = false;
+        private bool isReversing = false;
+        private bool isCastingSkill = false;
 
+        public string skillChargeAnim = "Charge";
+        public string skillReleaseAnim = "Release";
 
 
 #if ENABLE_INPUT_SYSTEM
@@ -95,6 +104,8 @@ namespace StarterAssets
         private bool _hasAnimator = true;
 
         public bool isCrouching = false;
+
+
 
         private void Awake()
         {
@@ -129,6 +140,10 @@ namespace StarterAssets
             GroundedCheck();
             JumpAndGravity();
             Move();
+            HandleSkillCharging(); // 放在最底部调用
+
+
+
         }
 
         private void HandleStandUpTimer()
@@ -354,8 +369,7 @@ namespace StarterAssets
             }
         }
 
-        // 动画事件调用的方法
-        // 动画事件调用的方法
+    
         public void OnCrouchToStandComplete()
         {
             _controller.height = standingHeight;
@@ -371,6 +385,78 @@ namespace StarterAssets
                 modelTransform.localRotation = Quaternion.identity;
             }
         }
+
+
+        private void HandleSkillCharging()
+        {
+            // 技能释放中不允许移动
+            if (isCastingSkill)
+                return;
+
+            if (_input.skillHold)
+            {
+                if (!isCharging)
+                {
+                    // 开始充能
+                    isCharging = true;
+                    chargeTimer = 0f;
+                    isChargeComplete = false;
+                    _animator.SetFloat(skillChargeAnim, 1f); // 正向播放动画
+                    _animator.speed = 1f;
+                    _input.DisableMovement(); // 禁止移动（需要你在 StarterAssetsInputs 中实现）
+                }
+
+                chargeTimer += Time.deltaTime;
+
+                if (chargeTimer >= chargeTimeThreshold && !isChargeComplete)
+                {
+                    isChargeComplete = true;
+                    _animator.SetFloat(skillChargeAnim, 2f); // 播放到蓄力完成的段
+                }
+            }
+            else if (isCharging)
+            {
+                // 松开按键
+                if (isChargeComplete)
+                {
+                    // 充能完成，释放技能
+                    isCastingSkill = true;
+                    _animator.SetFloat(skillChargeAnim, 3f); // 播放技能释放段
+                    _animator.speed = 1f;
+                    Invoke(nameof(FinishSkillCast), 0.5f); // 等动画播放完，再恢复（根据动画长度改）
+                    //FindObjectOfType<SkillManager>()?.ForceReleaseSkill();
+
+                }
+                else
+                {
+                    // 未完成充能，动画反向播放回到Idle
+                    _animator.SetFloat(skillChargeAnim, -1f); // 反向动画
+                    _animator.speed = 1f;
+                    Invoke(nameof(ResetSkillCharge), 0.3f); // 根据动画长度调整
+                }
+
+                isCharging = false;
+            }
+        }
+
+        private void ResetSkillCharge()
+        {
+            _animator.SetFloat(skillChargeAnim, 0f);
+            _animator.speed = 1f;
+            _input.EnableMovement();
+        }
+
+        private void FinishSkillCast()
+        {
+            isCastingSkill = false;
+            _animator.SetFloat(skillChargeAnim, 0f);
+            _animator.speed = 1f;
+            _input.EnableMovement();
+        }
+
+
+
+
 
         private static float ClampAngle(float angle, float min, float max)
         {

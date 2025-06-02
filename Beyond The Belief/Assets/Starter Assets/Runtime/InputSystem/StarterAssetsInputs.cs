@@ -14,6 +14,7 @@ namespace StarterAssets
         public bool jump;
         public bool sprint;
         public bool crouch; // 新增：蹲下
+        public bool interact;
 
         [Header("Movement Settings")]
         public bool analogMovement;
@@ -22,7 +23,25 @@ namespace StarterAssets
         public bool cursorLocked = true;
         public bool cursorInputForLook = true;
 
+        [Header("Custom Inputs")]
+        public bool skillHold;
+
+        [HideInInspector] public bool allowMovement = true;
+
+
 #if ENABLE_INPUT_SYSTEM
+
+        public void DisableMovement()
+        {
+            allowMovement = false;
+            move = Vector2.zero; // 防止残余输入
+        }
+
+        public void EnableMovement()
+        {
+            allowMovement = true;
+        }
+
         public void OnMove(InputValue value)
         {
             MoveInput(value.Get<Vector2>());
@@ -86,5 +105,20 @@ namespace StarterAssets
         {
             Cursor.lockState = newState ? CursorLockMode.Locked : CursorLockMode.None;
         }
+
+        public void OnInteract(InputAction.CallbackContext context)
+        {
+            interact = context.ReadValueAsButton();
+        }
+
+        public void OnSkillHold(InputValue value)
+        {
+            skillHold = value.isPressed;
+        }
+
+
+
+
+
     }
 }

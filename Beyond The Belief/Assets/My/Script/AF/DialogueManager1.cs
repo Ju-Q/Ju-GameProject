@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
@@ -6,117 +6,172 @@ using UnityEngine.UI;
 
 public class DialogueManager1 : MonoBehaviour
 {
-    public TextMeshProUGUI dialogueText; // Reference to the TextMeshProUGUI element
-    public List<string> dialogues; // List to hold dialogue strings
-    public Image characterPortrait; // Reference to the character portrait Image component
-    public List<Sprite> characterPortraits; // List of character portraits
-    public Image backgroundImage; // Reference to the background Image component
-    public Sprite backgroundSprite; // Single background image for the whole conversation
+    public TextMeshProUGUI dialogueText; // 对话文本显示
+    public List<string> dialogues; // 对话内容列表
+    public Image characterPortrait; // 角色头像
+    public List<Sprite> characterPortraits; // 角色头像列表
+    public Image backgroundImage; // 背景图片
+    public Sprite backgroundSprite; // 背景精灵
 
-    private int currentDialogueIndex = 0;
-    private Coroutine typingCoroutine; // Reference to the current typing coroutine
-    private bool isTyping = false; // Flag to track if typing is in progress
+    private int currentDialogueIndex = 0; // 当前对话索引
+    private Coroutine typingCoroutine; // 打字效果协程
+    private bool isTyping = false; // 是否正在打字
+    private bool isDialogueActive = true; // 对话是否激活
+
+    private float inputCooldown = 0.3f; // 输入冷却时间
+    private float lastInputTime = -1f; // 上次输入时间
+    private bool inputLocked = false; // 输入锁定标志
 
     void Start()
     {
         if (dialogues.Count > 0)
         {
-            // Hide the background and portrait initially
+            // 初始隐藏背景和头像
             backgroundImage.enabled = false;
             characterPortrait.enabled = false;
             UpdateDialogueUI();
         }
         else
         {
-            Debug.LogWarning("No dialogues available.");
+            Debug.LogWarning("没有可用的对话内容.");
+            isDialogueActive = false;
         }
     }
 
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.Return)) // Press Enter to show the next dialogue
+        if (!isDialogueActive) return;
+
+        // 检测回车键按下
+        if (Input.GetKeyDown(KeyCode.Return))
         {
-            ShowNextDialogue();
+            // 检查输入是否可用
+            if (!inputLocked && Time.time - lastInputTime > inputCooldown)
+            {
+                inputLocked = true;  // 锁定输入
+                lastInputTime = Time.time;
+                ShowNextDialogue();
+                StartCoroutine(UnlockInputAfterDelay(inputCooldown)); // 延迟解锁
+            }
         }
     }
 
-    // Show the next dialogue in the list
-    void ShowNextDialogue()
+    // 延迟解锁输入
+    IEnumerator UnlockInputAfterDelay(float delay)
     {
-        if (isTyping) // If typing is in progress
+        yield return new WaitForSeconds(delay);
+        inputLocked = false;
+    }
+
+    // 显示下一条对话
+      void ShowNextDialogue()
+    {
+        if (!isDialogueActive) return;
+
+        // 如果正在打字，则直接完成当前打字
+        if (isTyping)
         {
-            // Immediately display the full text and stop the typing effect
             StopTypingEffect();
+            return;
         }
-        else if (currentDialogueIndex < dialogues.Count - 1) // Move to the next dialogue
+
+        // 检查是否还有更多对话
+        if (currentDialogueIndex < dialogues.Count - 1)
         {
-            currentDialogueIndex++;
-            UpdateDialogueUI();
+            // 启动协程延迟切换到下一条对话
+            StartCoroutine(DelayNextDialogue(0.5f)); // 添加0.5秒延迟
         }
         else
         {
-            // Dialogue finished, hide everything
             EndDialogue();
         }
     }
 
-    // Update the dialogue text and character portrait
+    // 延迟切换到下一条对话
+    IEnumerator DelayNextDialogue(float delay)
+    {
+        // 在延迟期间禁用输入
+        isDialogueActive = false;
+        yield return new WaitForSeconds(delay);
+        
+        // 延迟结束后切换到下一条对话
+        currentDialogueIndex++;
+        isDialogueActive = true;
+        UpdateDialogueUI();
+    }
+
+    // 更新对话UI
     void UpdateDialogueUI()
     {
+        // 停止之前的打字效果
         if (typingCoroutine != null)
         {
-            StopCoroutine(typingCoroutine); // Stop any ongoing typing coroutine
+            StopCoroutine(typingCoroutine);
         }
 
-        typingCoroutine = StartCoroutine(TypeDialogue(dialogues[currentDialogueIndex])); // Start new typing effect
+        // 开始新的打字效果
+        typingCoroutine = StartCoroutine(TypeDialogue(dialogues[currentDialogueIndex]));
 
-        // Set the character portrait for the current dialogue
-        if (currentDialogueIndex < characterPortraits.Count)
+        // 更新角色头像
+        if (currentDialogueIndex < characterPortraits.Count && characterPortraits[currentDialogueIndex] != null)
         {
             characterPortrait.sprite = characterPortraits[currentDialogueIndex];
-            characterPortrait.enabled = true; // Show the character portrait
+            characterPortrait.enabled = true;
         }
         else
         {
-            characterPortrait.enabled = false; // Hide if there is no corresponding portrait
+            characterPortrait.enabled = false;
         }
 
-        // Set the background image for the entire conversation
-        backgroundImage.sprite = backgroundSprite;
-        backgroundImage.enabled = true; // Show the background image
+        // 更新背景
+        if (backgroundSprite != null)
+        {
+            backgroundImage.sprite = backgroundSprite;
+            backgroundImage.enabled = true;
+        }
+        else
+        {
+            backgroundImage.enabled = false;
+        }
     }
 
-    // Typewriter effect for displaying dialogue text
+    // 打字效果协程
     IEnumerator TypeDialogue(string text)
     {
-        isTyping = true; // Set typing flag
-        dialogueText.text = ""; // Clear existing text
-        foreach (char letter in text)
+        isTyping = true;
+        dialogueText.text = "";
+
+        // 逐个字符显示
+        foreach (char letter in text.ToCharArray())
         {
             dialogueText.text += letter;
-            yield return new WaitForSeconds(0.05f); // Slower typing speed (0.05 seconds per letter)
+            yield return new WaitForSeconds(0.05f); // 每个字符间隔0.05秒
         }
-        isTyping = false; // Typing complete
+
+        isTyping = false;
     }
 
-    // Immediately complete the typing effect
+    // 停止打字效果，直接显示完整文本
     void StopTypingEffect()
     {
         if (typingCoroutine != null)
         {
-            StopCoroutine(typingCoroutine); // Stop the coroutine
+            StopCoroutine(typingCoroutine);
+            typingCoroutine = null;
         }
 
-        dialogueText.text = dialogues[currentDialogueIndex]; // Display full dialogue text
-        isTyping = false; // Reset typing flag
+        dialogueText.text = dialogues[currentDialogueIndex];
+        isTyping = false;
     }
 
-    // End the dialogue sequence (when there are no more dialogues)
+    // 结束对话
     void EndDialogue()
     {
-        dialogueText.text = ""; // Optionally display "The End" or some other message
-        backgroundImage.enabled = false; // Hide the background image
-        characterPortrait.enabled = false; // Hide the character portrait
-        Debug.Log("Dialogue sequence finished.");
+        dialogueText.text = "";
+        backgroundImage.enabled = false;
+        characterPortrait.enabled = false;
+        isDialogueActive = false;
+
+        Debug.Log("对话序列结束.");
     }
 }
