@@ -1,3 +1,4 @@
+using System;
 using StarterAssets;
 using UnityEngine;
 
@@ -23,11 +24,13 @@ public class SlowZone : MonoBehaviour
 
     private float _originalMoveSpeed;
     private float _originalSprintSpeed;
+    public bool isInSlowZone;
 
     private void OnTriggerEnter(Collider other)
     {
         if (!other.CompareTag("Player")) return;
 
+        isInSlowZone = true;
         InitializePlayerComponents(other);
         ApplySlowEffects();
     }
@@ -89,9 +92,17 @@ public class SlowZone : MonoBehaviour
             _playerAnimator.Update(0f); // 强制立即更新
 
             Debug.Log($"设置后值: {_playerAnimator.GetBool(slowWalkAnimParameter)} | 参数存在: {ParameterExists(_playerAnimator, slowWalkAnimParameter)}");
-
-            _playerAnimator.SetFloat("MotionSpeed", 0.5f);
         }
+    }
+
+    private void Update()
+    {
+        if (isInSlowZone && _playerInputs != null)
+        {
+            _playerAnimator.speed = _playerInputs.move == Vector2.zero ? 0 : 1;
+        }
+        // float inputMagnitude = _playerInputs.analogMovement ? _playerInputs.move.magnitude : 1f;
+        // Debug.Log("控制输入" + inputMagnitude)
     }
 
     // 检查参数是否存在的辅助方法
@@ -108,6 +119,8 @@ public class SlowZone : MonoBehaviour
     {
         if (!other.CompareTag("Player")) return;
 
+        isInSlowZone = false;
+        _playerAnimator.speed = 1;
         if (_playerController != null)
         {
             _playerController.MoveSpeed = _originalMoveSpeed;
@@ -116,7 +129,6 @@ public class SlowZone : MonoBehaviour
             if (useSlowWalkAnimation && _playerAnimator != null)
             {
                 _playerAnimator.SetBool(slowWalkAnimParameter, false);
-                _playerAnimator.SetFloat("MotionSpeed", 1f);
             }
         }
     }
