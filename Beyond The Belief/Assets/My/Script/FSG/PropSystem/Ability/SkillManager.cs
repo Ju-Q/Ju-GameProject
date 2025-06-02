@@ -82,10 +82,11 @@ public class SkillManager : MonoBehaviour
             t -= Time.deltaTime;
             float normTime = Mathf.Clamp01(t / skillAnimLength);
             animator.Play(skillAnimationStateName, 0, normTime);
+            Debug.Log("²¥·Å" + skillAnimationStateName);
             yield return null;
         }
 
-        animator.Play("Idle");
+        animator.Play("Idle Walk Run Blend");
         controllerToDisable.enabled = true;
         isSkillPlaying = false;
     }
@@ -100,7 +101,4 @@ public class SkillManager : MonoBehaviour
             StartCoroutine(PlayFullSkillAnimationFrom(chargeTimer));
         }
     }
-
-
-
 }

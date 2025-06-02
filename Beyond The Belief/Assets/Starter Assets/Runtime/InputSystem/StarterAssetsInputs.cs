@@ -65,6 +65,11 @@ namespace StarterAssets
             SprintInput(value.isPressed);
         }
 
+        public void OnSkill(InputValue value)
+        {
+            OnSkillHold(value);
+        }
+
         public void OnCrouch(InputValue value) // 新增：处理 C 键的输入
         {
             CrouchInput(value.isPressed);
@@ -115,10 +120,5 @@ namespace StarterAssets
         {
             skillHold = value.isPressed;
         }
-
-
-
-
-
     }
 }
