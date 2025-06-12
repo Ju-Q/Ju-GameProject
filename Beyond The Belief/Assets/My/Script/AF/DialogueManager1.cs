@@ -113,7 +113,7 @@ public class DialogueManager1 : MonoBehaviour
         typingCoroutine = StartCoroutine(TypeDialogue(dialogues[currentDialogueIndex]));
 
         // 更新角色头像
-        if (currentDialogueIndex < characterPortraits.Count - 1 && characterPortraits[currentDialogueIndex] != null)
+        if (currentDialogueIndex < characterPortraits.Count + 1 && characterPortraits[currentDialogueIndex] != null)
         {
             Debug.Log("更新头像" + currentDialogueIndex);
             characterPortrait.sprite = characterPortraits[currentDialogueIndex];

@@ -1,21 +1,24 @@
-using System;
+ï»¿using System;
 using StarterAssets;
 using UnityEngine;
 
 public class SlowZone : MonoBehaviour
 {
-    [Header("¼õËÙÉèÖÃ")]
+    [Header("å‡é€Ÿè®¾ç½®")]
     public float slowMoveSpeed = 1.5f;
     public bool disableSprint = true;
     public bool cancelCurrentSprint = true;
 
-    [Header("¶¯»­ÉèÖÃ")]
+    [Header("åŠ¨ç”»è®¾ç½®")]
     public bool useSlowWalkAnimation = true;
     public string slowWalkAnimParameter = "SlowWalk";
     public float animationTransitionTime = 0.2f;
 
-    [Tooltip("ÊÖ¶¯Ö¸¶¨°üº¬AnimatorµÄ×Ó¶ÔÏó£¨Èç¹û²»ÔÚ¸ù¶ÔÏóÉÏ£©")]
-    public Transform animatorTarget; // ĞÂÔö£ºÊÖ¶¯Ö¸¶¨AnimatorËùÔÚ¶ÔÏó
+    [Tooltip("æ‰‹åŠ¨æŒ‡å®šåŒ…å«Animatorçš„å­å¯¹è±¡ï¼ˆå¦‚æœä¸åœ¨æ ¹å¯¹è±¡ä¸Šï¼‰")]
+    public Transform animatorTarget; // æ–°å¢ï¼šæ‰‹åŠ¨æŒ‡å®šAnimatoræ‰€åœ¨å¯¹è±¡
+
+    [Header("è¡€é‡æ£€æµ‹")]
+    public PlayerHealthSlider playerHealthSlider; // æ‹–å…¥æˆ–åŠ¨æ€æŸ¥æ‰¾
 
     private ThirdPersonController _playerController;
     private StarterAssetsInputs _playerInputs;
@@ -39,28 +42,28 @@ public class SlowZone : MonoBehaviour
     {
         if (_playerController == null)
         {
-            // »ñÈ¡¸ù¶ÔÏóÉÏµÄ×é¼ş
+            // è·å–æ ¹å¯¹è±¡ä¸Šçš„ç»„ä»¶
             _playerController = player.GetComponentInParent<ThirdPersonController>();
             _playerInputs = player.GetComponentInParent<StarterAssetsInputs>();
             _characterController = player.GetComponentInParent<CharacterController>();
 
-            // ÓÅÏÈÊ¹ÓÃÊÖ¶¯Ö¸¶¨µÄAnimatorÄ¿±ê£¬·ñÔò×Ô¶¯²éÕÒ
+            // ä¼˜å…ˆä½¿ç”¨æ‰‹åŠ¨æŒ‡å®šçš„Animatorç›®æ ‡ï¼Œå¦åˆ™è‡ªåŠ¨æŸ¥æ‰¾
             if (animatorTarget != null)
             {
                 _playerAnimator = animatorTarget.GetComponent<Animator>();
             }
             else
             {
-                // ÔÚÕû¸ö²ã¼¶ÖĞ²éÕÒAnimator
+                // åœ¨æ•´ä¸ªå±‚çº§ä¸­æŸ¥æ‰¾Animator
                 _playerAnimator = player.GetComponentInChildren<Animator>();
             }
 
             if (_playerAnimator == null)
             {
-                Debug.LogError("Î´ÕÒµ½Animator×é¼ş£¡Çë¼ì²é²ã¼¶»òÊÖ¶¯Ö¸¶¨animatorTarget");
+                Debug.LogError("æœªæ‰¾åˆ°Animatorç»„ä»¶ï¼è¯·æ£€æŸ¥å±‚çº§æˆ–æ‰‹åŠ¨æŒ‡å®šanimatorTarget");
             }
 
-            // ±£´æÔ­Ê¼Öµ
+            // ä¿å­˜åŸå§‹å€¼
             _originalMoveSpeed = _playerController.MoveSpeed;
             _originalSprintSpeed = _playerController.SprintSpeed;
         }
@@ -68,7 +71,7 @@ public class SlowZone : MonoBehaviour
 
     private void ApplySlowEffects()
     {
-        // ÉèÖÃ¼õËÙ
+        // è®¾ç½®å‡é€Ÿ
         _playerController.MoveSpeed = slowMoveSpeed;
 
         if (disableSprint)
@@ -80,32 +83,37 @@ public class SlowZone : MonoBehaviour
             }
         }
 
-        // ÉèÖÃ¶¯»­²ÎÊı
+        // è®¾ç½®åŠ¨ç”»å‚æ•°
         if (useSlowWalkAnimation && _playerAnimator != null)
         {
-            Debug.Log($"ÕıÔÚÉèÖÃ¶¯»­²ÎÊı {slowWalkAnimParameter} Îª true (µ±Ç°Öµ: {_playerAnimator.GetBool(slowWalkAnimParameter)})");
+            Debug.Log($"æ­£åœ¨è®¾ç½®åŠ¨ç”»å‚æ•° {slowWalkAnimParameter} ä¸º true (å½“å‰å€¼: {_playerAnimator.GetBool(slowWalkAnimParameter)})");
 
-            // È·±£AnimatorÒÑÆôÓÃ
+            // ç¡®ä¿Animatorå·²å¯ç”¨
             _playerAnimator.enabled = true;
 
             _playerAnimator.SetBool(slowWalkAnimParameter, true);
-            _playerAnimator.Update(0f); // Ç¿ÖÆÁ¢¼´¸üĞÂ
+            _playerAnimator.Update(0f); // å¼ºåˆ¶ç«‹å³æ›´æ–°
 
-            Debug.Log($"ÉèÖÃºóÖµ: {_playerAnimator.GetBool(slowWalkAnimParameter)} | ²ÎÊı´æÔÚ: {ParameterExists(_playerAnimator, slowWalkAnimParameter)}");
+            Debug.Log($"è®¾ç½®åå€¼: {_playerAnimator.GetBool(slowWalkAnimParameter)} | å‚æ•°å­˜åœ¨: {ParameterExists(_playerAnimator, slowWalkAnimParameter)}");
         }
     }
 
     private void Update()
     {
-        if (isInSlowZone && _playerInputs != null)
+        if (!isInSlowZone || _playerInputs == null || _playerAnimator == null) return;
+
+        // âœ… å¦‚æœè¡€é‡ä¸º0ï¼Œå¼ºåˆ¶åŠ¨ç”»é€Ÿåº¦ä¸º1ï¼ˆæ¢å¤æ’­æ”¾ï¼‰
+        if (playerHealthSlider != null && playerHealthSlider.healthSlider.value <= 0f)
+        {
+            _playerAnimator.speed = 1;
+        }
+        else
         {
             _playerAnimator.speed = _playerInputs.move == Vector2.zero ? 0 : 1;
         }
-        // float inputMagnitude = _playerInputs.analogMovement ? _playerInputs.move.magnitude : 1f;
-        // Debug.Log("¿ØÖÆÊäÈë" + inputMagnitude)
     }
 
-    // ¼ì²é²ÎÊıÊÇ·ñ´æÔÚµÄ¸¨Öú·½·¨
+    // æ£€æŸ¥å‚æ•°æ˜¯å¦å­˜åœ¨çš„è¾…åŠ©æ–¹æ³•
     private bool ParameterExists(Animator animator, string paramName)
     {
         foreach (var param in animator.parameters)

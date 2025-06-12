@@ -1,36 +1,55 @@
 using UnityEngine;
+using System.Collections;
 
-/// <summary>
-/// 交互提示指示器：控制一个UI提示图标的显示与隐藏（例如"按F交互"的提示）
-/// </summary>
 public class InteractableIndicator : MonoBehaviour
 {
     [Header("UI配置")]
-    public GameObject indicatorImage; // 在Unity编辑器中拖入需要显示的提示UI对象（如一个Image或Canvas Group）
+    public GameObject indicatorGameObject;
 
-    // ====== 初始化 ======
+    [Header("动画配置")]
+    public Animator targetAnimator;        // 控制动画的 Animator
+    public string triggerName = "Hide";    // Animator 中的 Trigger 名称
+    public float hideDelay = 1f;           // 延迟时间（秒）
+
+    private bool isHiding = false;
+
     private void Start()
     {
-        // 如果indicatorImage已赋值，初始状态设为隐藏
-        if (indicatorImage != null)
+        if (indicatorGameObject != null)
         {
-            indicatorImage.SetActive(false);
+            indicatorGameObject.SetActive(false);
         }
     }
 
-    // ====== 显示提示 ======
     public void ShowIndicator()
     {
-        // 安全检查：如果indicatorImage不为空，则激活显示
-        if (indicatorImage != null)
-            indicatorImage.SetActive(true);
+        if (indicatorGameObject != null)
+            indicatorGameObject.SetActive(true);
     }
 
-    // ====== 隐藏提示 ======
     public void HideIndicator()
     {
-        // 安全检查：如果indicatorImage不为空，则隐藏
-        if (indicatorImage != null)
-            indicatorImage.SetActive(false);
+        if (!isHiding && indicatorGameObject != null)
+        {
+            StartCoroutine(HideAfterDelay());
+        }
+    }
+
+    private IEnumerator HideAfterDelay()
+    {
+        isHiding = true;
+
+        // 触发动画
+        if (targetAnimator != null && !string.IsNullOrEmpty(triggerName))
+        {
+            targetAnimator.SetTrigger(triggerName);
+        }
+
+        // 等待指定秒数
+        yield return new WaitForSeconds(hideDelay);
+
+        // 隐藏提示UI
+        indicatorGameObject.SetActive(false);
+        isHiding = false;
     }
 }
