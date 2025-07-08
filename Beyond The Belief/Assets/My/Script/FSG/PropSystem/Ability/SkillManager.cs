@@ -1,51 +1,53 @@
-using StarterAssets;
+ï»¿using StarterAssets;
 using UnityEngine;
 using System.Collections;
 
 public class SkillManager : MonoBehaviour
 {
-    public Animator animator; // ¿ØÖÆ¼¼ÄÜ¶¯»­µÄ Animator
-    public StarterAssetsInputs inputs; // ¹ÜÀíÍæ¼ÒÊäÈëµÄ½Å±¾ÒıÓÃ
-    public MonoBehaviour controllerToDisable; // ¼¼ÄÜÊÍ·ÅÆÚ¼äÒª½ûÓÃµÄ¿ØÖÆÆ÷£¨ÀıÈç½ÇÉ«¿ØÖÆÆ÷£©
+    public Animator animator;                         // æ§åˆ¶æŠ€èƒ½åŠ¨ç”»çš„ Animator
+    public StarterAssetsInputs inputs;                // ç®¡ç†ç©å®¶è¾“å…¥çš„è„šæœ¬å¼•ç”¨
+    public MonoBehaviour controllerToDisable;         // æŠ€èƒ½é‡Šæ”¾æœŸé—´è¦ç¦ç”¨çš„æ§åˆ¶å™¨ï¼ˆå¦‚ ThirdPersonControllerï¼‰
 
     [Header("Skill Animation Settings")]
-    public string skillAnimationStateName = "SkillChargeRelease"; // ¼¼ÄÜ¶¯»­µÄ×´Ì¬Ãû³Æ
-    public float skillAnimLength = 2.17f; // ¼¼ÄÜ¶¯»­×ÜÊ±³¤
-    public float chargeThreshold = 1.15f; // ¼¼ÄÜĞîÁ¦Íê³ÉËùĞèÊ±¼äãĞÖµ
+    public string skillAnimationStateName = "SkillChargeRelease"; // æŠ€èƒ½åŠ¨ç”»çš„çŠ¶æ€åç§°
+    public float skillAnimLength = 2.17f;             // æŠ€èƒ½åŠ¨ç”»æ€»æ—¶é•¿
+    public float chargeThreshold = 1.15f;             // æŠ€èƒ½è“„åŠ›å®Œæˆæ‰€éœ€æ—¶é—´é˜ˆå€¼
 
-    private float chargeTimer = 0f; // µ±Ç°ĞîÁ¦¼ÆÊ±Æ÷
-    private bool isCharging = false; // ÊÇ·ñÕıÔÚĞîÁ¦
-    private bool isSkillPlaying = false; // ÊÇ·ñÕıÔÚ²¥·Å¼¼ÄÜ¶¯»­
-    private bool isChargeComplete = false; // ÊÇ·ñÒÑ¾­Íê³ÉĞîÁ¦
+    private float chargeTimer = 0f;                   // å½“å‰è“„åŠ›è®¡æ—¶å™¨
+    private bool isCharging = false;                  // æ˜¯å¦æ­£åœ¨è“„åŠ›
+    private bool isSkillPlaying = false;              // æ˜¯å¦æ­£åœ¨æ’­æ”¾æŠ€èƒ½åŠ¨ç”»
+    private bool isChargeComplete = false;            // æ˜¯å¦å·²ç»å®Œæˆè“„åŠ›
 
-    private float preChargeTimer = 0f;           // ¼ÇÂ¼Ô¤ĞîÁ¦Ê±¼ä
-    private float preChargeDelay = 0.5f;         // Èİ´íÊ±¼ä£ºÎó´¥0.5ÃëÄÚ²»´¥·¢ĞîÁ¦
-    private bool isPreCharging = false;          // ÊÇ·ñÔÚÔ¤ĞîÁ¦½×¶Î
+    private float preChargeTimer = 0f;                // è®°å½•é¢„è“„åŠ›æ—¶é—´
+    private float preChargeDelay = 0.5f;              // å®¹é”™æ—¶é—´ï¼šè¯¯è§¦0.5ç§’å†…ä¸è§¦å‘è“„åŠ›
+    private bool isPreCharging = false;               // æ˜¯å¦åœ¨é¢„è“„åŠ›é˜¶æ®µ
 
     [Header("Skill VFX Settings")]
-    public GameObject skillVFX;              // ¼¼ÄÜÌØĞ§ÎïÌå
-    public float vfxDeactivateDelay = 2f;    // ¶¯»­²¥·ÅÍê³ÉºóÑÓ³Ù¹Ø±ÕÌØĞ§µÄÊ±¼ä
+    public GameObject skillVFX;                       // æŠ€èƒ½ç‰¹æ•ˆç‰©ä½“
+    public float vfxDeactivateDelay = 2f;             // åŠ¨ç”»æ’­æ”¾å®Œæˆåå»¶è¿Ÿå…³é—­ç‰¹æ•ˆçš„æ—¶é—´
+
+    [Header("Skill Trigger Settings")]
+    public GameObject skillTriggerObject;             // æŠ€èƒ½ Trigger å¯¹è±¡ï¼ˆéœ€å¸¦ SphereColliderï¼ŒisTrigger = trueï¼‰
+    public float triggerExpandDuration = 1f;          // Trigger æ‰©å¤§æ‰€ç”¨æ—¶é—´
+    public float triggerStartRadius = 0.1f;           // èµ·å§‹åŠå¾„
+    public float triggerEndRadius = 3f;               // æœ€ç»ˆåŠå¾„
 
     private ItemPickupManager itemPickupManager;
 
     void Start()
     {
-        // »ñÈ¡ ItemPickupManager ½Å±¾ÒıÓÃ
         itemPickupManager = GetComponent<ItemPickupManager>();
     }
 
     private void Update()
     {
-        // Èç¹ûÕıÔÚ²¥·Å¼¼ÄÜ¶¯»­£¬Ìø¹ı¸üĞÂÂß¼­
         if (isSkillPlaying) return;
 
-        // Èç¹ûÍæ¼ÒÕıÔÚ°´×¡¼¼ÄÜ¼ü
         if (inputs.skillHold)
         {
-
             if (SkillPointManager.Instance != null &&
-        SkillPointManager.Instance.currentSkillPoints > 0 && // ¼¼ÄÜµã±ØĞë´óÓÚ0
-        itemPickupManager != null && itemPickupManager.propACount > 0)
+                SkillPointManager.Instance.currentSkillPoints > 0 &&
+                itemPickupManager != null && itemPickupManager.propACount > 0)
             {
                 if (!isCharging && !isPreCharging)
                 {
@@ -59,9 +61,7 @@ public class SkillManager : MonoBehaviour
 
                     if (preChargeTimer >= preChargeDelay)
                     {
-                        // Èİ´íÊ±¼ä½áÊø£¬¿ªÊ¼ÕıÊ½ĞîÁ¦
-                        Debug.Log("¿ªÊ¼ĞîÁ¦");
-
+                        Debug.Log("å¼€å§‹è“„åŠ›");
 
                         isPreCharging = false;
                         isCharging = true;
@@ -77,64 +77,66 @@ public class SkillManager : MonoBehaviour
                     }
                 }
 
-
                 if (isCharging)
                 {
-                    // ÀÛ¼ÓĞîÁ¦Ê±¼ä
                     chargeTimer += Time.deltaTime;
 
-                    // °´µ±Ç°ĞîÁ¦Ê±¼äÉèÖÃ¶¯»­²¥·Å½ø¶È
                     float normTime = Mathf.Clamp01(chargeTimer / skillAnimLength);
                     animator.Play(skillAnimationStateName, 0, normTime);
 
-                    // Èç¹û´ïµ½ĞîÁ¦ãĞÖµ£¬×Ô¶¯ÊÍ·Å¼¼ÄÜ
                     if (!isChargeComplete && chargeTimer >= chargeThreshold)
                     {
-                        Debug.Log("ĞîÁ¦Íê³É£¬×Ô¶¯ÊÍ·Å¼¼ÄÜ");
+                        Debug.Log("è“„åŠ›å®Œæˆï¼Œè‡ªåŠ¨é‡Šæ”¾æŠ€èƒ½");
                         isChargeComplete = true;
-                        StartCoroutine(PlayFullSkillAnimationFrom(chargeTimer)); // ´Óµ±Ç°½ø¶È¼ÌĞø²¥·ÅÍêÕû¶¯»­
                         isCharging = false;
+                        StartCoroutine(PlayFullSkillAnimationFrom(chargeTimer));
                     }
                 }
             }
         }
-        // Èç¹ûÌáÇ°ËÉ¿ª¼¼ÄÜ¼üµ«Î´Íê³ÉĞîÁ¦£¬·´Ïò²¥·Å¶¯»­
         else if (isCharging && !isChargeComplete)
         {
-            Debug.Log("ÌáÇ°ËÉÊÖ£¬·´Ïò²¥·Å¶¯»­");
+            Debug.Log("æå‰æ¾æ‰‹ï¼Œåå‘æ’­æ”¾åŠ¨ç”»");
             isCharging = false;
-            StartCoroutine(ReverseSkillAnimation()); // ²¥·Å·´Ïò¶¯»­
+            StartCoroutine(ReverseSkillAnimation());
         }
     }
 
-    // Ğ­³Ì£º´ÓÖ¸¶¨Ê±¼äµã¿ªÊ¼²¥·ÅÊ£ÏÂµÄÍêÕû¼¼ÄÜ¶¯»­
+    /// <summary>
+    /// æ’­æ”¾æŠ€èƒ½å‰©ä½™åŠ¨ç”»ï¼Œå¹¶åœ¨åŒæ—¶å¯ç”¨æ‰©å¤§èŒƒå›´ Trigger
+    /// </summary>
     private IEnumerator PlayFullSkillAnimationFrom(float currentTime)
     {
         isSkillPlaying = true;
+
+        // âœ… åŒæ­¥å¯ç”¨æŠ€èƒ½ Trigger èŒƒå›´æ‰©å¤§
+        if (skillTriggerObject != null)
+        {
+            StartCoroutine(ExpandSkillTrigger());
+        }
+
         animator.speed = 1f;
         animator.Play(skillAnimationStateName, 0, currentTime / skillAnimLength);
 
-        // µÈ´ıÊ£Óà¶¯»­Ê±³¤²¥·ÅÍê³É
         yield return new WaitForSeconds(skillAnimLength - currentTime);
 
-        // ¶¯»­½áÊøºó»Øµ½ Idle ×´Ì¬£¬»Ö¸´¿ØÖÆ
-        animator.Play("Idle Walk Run Blend"); // »òÌæ»»ÎªÄãµÄ idle ¶¯»­×´Ì¬Ãû
+        // åŠ¨ç”»ç»“æŸåå›åˆ° Idle çŠ¶æ€å¹¶æ¢å¤æ§åˆ¶
+        animator.Play("Idle Walk Run Blend");
         controllerToDisable.enabled = true;
         isSkillPlaying = false;
 
         if (skillVFX != null)
             StartCoroutine(DeactivateVFXAfterDelay(vfxDeactivateDelay));
-
-
     }
 
-    // Ğ­³Ì£º·´Ïò²¥·Å¶¯»­ÖÁÆğµã£¨ËÉÊÖÊ±Î´ĞîÂú£©
+    /// <summary>
+    /// æŠ€èƒ½æœªå……æ»¡æ—¶ï¼Œåå‘æ’­æ”¾åŠ¨ç”»å›åˆ°èµ·å§‹
+    /// </summary>
     private IEnumerator ReverseSkillAnimation()
     {
         isSkillPlaying = true;
         float t = chargeTimer;
 
-        // µ¹ÍË²¥·Å¶¯»­
         while (t > 0f)
         {
             t -= Time.deltaTime;
@@ -143,24 +145,28 @@ public class SkillManager : MonoBehaviour
             yield return null;
         }
 
-        // »Øµ½ÆÕÍ¨×´Ì¬¶¯»­£¬»Ö¸´¿ØÖÆ
-        animator.Play("Idle Walk Run Blend"); // Ìæ»»ÎªÄãµÄÊµ¼Ê idle ¶¯»­Ãû
+        animator.Play("Idle Walk Run Blend");
         controllerToDisable.enabled = true;
         isSkillPlaying = false;
     }
 
-    // Íâ²¿µ÷ÓÃ£ºÇ¿ÖÆÊÍ·Å¼¼ÄÜ£¨ÀıÈç±»Ä³Ğ©ÊÂ¼ş´¥·¢£©
+    /// <summary>
+    /// å¼ºåˆ¶é‡Šæ”¾æŠ€èƒ½ï¼ˆç”¨äºå¤–éƒ¨è°ƒç”¨ï¼‰
+    /// </summary>
     public void ForceReleaseSkill()
     {
         if (isCharging && !isSkillPlaying && !isChargeComplete)
         {
-            Debug.Log("ÊÖ¶¯´¥·¢¼¼ÄÜÊÍ·Å");
+            Debug.Log("æ‰‹åŠ¨è§¦å‘æŠ€èƒ½é‡Šæ”¾");
             isChargeComplete = true;
             isCharging = false;
             StartCoroutine(PlayFullSkillAnimationFrom(chargeTimer));
         }
     }
 
+    /// <summary>
+    /// å»¶è¿Ÿå…³é—­æŠ€èƒ½ç‰¹æ•ˆ
+    /// </summary>
     private IEnumerator DeactivateVFXAfterDelay(float delay)
     {
         yield return new WaitForSeconds(delay);
@@ -168,5 +174,32 @@ public class SkillManager : MonoBehaviour
             skillVFX.SetActive(false);
     }
 
+    /// <summary>
+    /// æŠ€èƒ½é‡Šæ”¾åˆ¤å®šèŒƒå›´ï¼ˆTriggerï¼‰ä»å°æ‰©å¤§åˆ°å¤§
+    /// </summary>
+    private IEnumerator ExpandSkillTrigger()
+    {
+        SphereCollider trigger = skillTriggerObject.GetComponent<SphereCollider>();
+        if (trigger == null)
+        {
+            Debug.LogWarning("æŠ€èƒ½Triggerå¯¹è±¡ä¸Šç¼ºå°‘SphereCollider");
+            yield break;
+        }
 
+        skillTriggerObject.SetActive(true);
+        trigger.enabled = true;
+        trigger.radius = triggerStartRadius;
+
+        float timer = 0f;
+        while (timer < triggerExpandDuration)
+        {
+            timer += Time.deltaTime;
+            float t = timer / triggerExpandDuration;
+            trigger.radius = Mathf.Lerp(triggerStartRadius, triggerEndRadius, t);
+            yield return null;
+        }
+
+        yield return null;
+        skillTriggerObject.SetActive(false);
+    }
 }
