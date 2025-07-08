@@ -43,7 +43,9 @@ public class SkillManager : MonoBehaviour
         if (inputs.skillHold)
         {
 
-            if (itemPickupManager != null && itemPickupManager.propACount > 0)
+            if (SkillPointManager.Instance != null &&
+        SkillPointManager.Instance.currentSkillPoints > 0 && // 技能点必须大于0
+        itemPickupManager != null && itemPickupManager.propACount > 0)
             {
                 if (!isCharging && !isPreCharging)
                 {

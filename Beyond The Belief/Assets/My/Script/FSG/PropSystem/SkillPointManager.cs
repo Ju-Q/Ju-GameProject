@@ -66,7 +66,7 @@ public class SkillPointManager : MonoBehaviour
     }
 
     // ====== 消耗技能点 ======
-    private void UseSkillPoint()
+    public void UseSkillPoint()
     {
         if (currentSkillPoints > 0)
         {
