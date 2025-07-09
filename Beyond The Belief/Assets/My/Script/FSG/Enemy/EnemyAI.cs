@@ -7,19 +7,15 @@ using UnityEngine.UI;
 public class EnemyAI : MonoBehaviour
 {
     [Header("巡逻设置")]
+    public bool canPatrol = true;
     public Transform[] patrolPoints;
-    [Tooltip("敌人巡逻时的速度")]
     public float patrolSpeed = 2f;
     private int currentPatrolIndex = 0;
 
     [Header("追击设置")]
-    [Tooltip("侦测主角的距离")]
     public float detectionRange = 10f;
-    [Tooltip("侦测主角的角度（度）")]
-    public float detectionAngle = 60f; // ✅ 新增可调节检测角度
-    [Tooltip("敌人追击主角时的速度")]
+    public float detectionAngle = 60f;
     public float chaseSpeed = 4f;
-    [Tooltip("丢失目标后返回巡逻的等待时间")]
     public float loseTargetTime = 3f;
     private float chaseTimer = 0f;
 
@@ -31,20 +27,15 @@ public class EnemyAI : MonoBehaviour
     public ThirdPersonController Controller;
 
     [Header("攻击设置")]
-    [Tooltip("抓住玩家的距离")]
     public float catchDistance = 1.5f;
-    [Tooltip("黑屏UI组件")]
     public Image blackScreen;
-    [Tooltip("黑屏淡入淡出时间")]
     public float blackFadeDuration = 1f;
-    [Tooltip("黑屏保持时间")]
     public float blackStayDuration = 3f;
-    [Tooltip("玩家重生点")]
     public Transform playerRespawnPoint;
 
     private NavMeshAgent agent;
     private Vector3 startPosition;
-    private int state = 0; // 0:巡逻, 1:追击, 2:攻击
+    private int state = 0; // 0:巡逻/待机, 1:追击, 2:攻击
 
     void Start()
     {
@@ -55,10 +46,18 @@ public class EnemyAI : MonoBehaviour
         startPosition = transform.position;
         enemyAnimator.applyRootMotion = false;
 
-        if (patrolPoints.Length > 0)
+        if (canPatrol && patrolPoints.Length > 0)
         {
             currentPatrolIndex = GetClosestPatrolPointIndex();
             agent.SetDestination(patrolPoints[currentPatrolIndex].position);
+            enemyAnimator.SetBool("isWalking", true);
+            enemyAnimator.ResetTrigger("Idle"); // 取消Idle触发
+        }
+        else
+        {
+            enemyAnimator.SetBool("isWalking", false);
+            enemyAnimator.SetBool("isRunning", false);
+            enemyAnimator.SetTrigger("Idle"); // ✅ 非巡逻时播放Idle动画
         }
     }
 
@@ -69,12 +68,24 @@ public class EnemyAI : MonoBehaviour
         switch (state)
         {
             case 0:
-                Patrol();
+                if (canPatrol)
+                {
+                    Patrol();
+                }
+                else
+                {
+                    agent.SetDestination(transform.position); // 停止移动
+                    enemyAnimator.SetBool("isWalking", false);
+                    enemyAnimator.SetBool("isRunning", false);
+                    enemyAnimator.SetTrigger("Idle"); // ✅ 非巡逻状态保持Idle动画
+                }
+
                 if (IsPlayerDetected(distanceToPlayer))
                 {
                     state = 1;
                     enemyAnimator.SetBool("isWalking", false);
                     enemyAnimator.SetBool("isRunning", true);
+                    enemyAnimator.ResetTrigger("Idle");
                 }
                 break;
 
@@ -83,24 +94,20 @@ public class EnemyAI : MonoBehaviour
                 break;
 
             case 2:
-                break; // 攻击状态由协程控制
+                break;
         }
 
         RotateTowardsMovement();
     }
 
-    // 检测玩家是否在视野内（距离+角度）
     bool IsPlayerDetected(float distanceToPlayer)
     {
         if (distanceToPlayer > detectionRange) return false;
 
         Vector3 directionToPlayer = (player.position - transform.position).normalized;
         float angleToPlayer = Vector3.Angle(transform.forward, directionToPlayer);
-
-        // 角度检测
         if (angleToPlayer > detectionAngle / 2f) return false;
 
-        // 射线检测（防止穿墙）
         RaycastHit hit;
         if (Physics.Raycast(transform.position + Vector3.up, directionToPlayer, out hit, detectionRange))
         {
@@ -122,6 +129,7 @@ public class EnemyAI : MonoBehaviour
 
         enemyAnimator.SetBool("isWalking", true);
         enemyAnimator.SetBool("isRunning", false);
+        enemyAnimator.ResetTrigger("Idle"); // ✅ 清除Idle状态
     }
 
     void ChasePlayer(float distance)
@@ -134,9 +142,14 @@ public class EnemyAI : MonoBehaviour
             state = 2;
             agent.isStopped = true;
             enemyAnimator.SetTrigger("Attack");
-            playerAnimator.applyRootMotion = true;
-            if (playerAnimator != null) playerAnimator.SetTrigger("Caught");
-            StartCoroutine(HandlePlayerCaught()); // 触发捕获处理
+
+            if (playerAnimator != null)
+            {
+                playerAnimator.applyRootMotion = true;
+                playerAnimator.SetTrigger("Caught");
+            }
+
+            StartCoroutine(HandlePlayerCaught());
         }
         else if (!IsPlayerDetected(distance))
         {
@@ -157,10 +170,20 @@ public class EnemyAI : MonoBehaviour
         chaseTimer = 0f;
         state = 0;
         agent.isStopped = false;
-        currentPatrolIndex = GetClosestPatrolPointIndex();
-        agent.SetDestination(patrolPoints[currentPatrolIndex].position);
-        enemyAnimator.SetBool("isRunning", false);
-        enemyAnimator.SetBool("isWalking", true);
+
+        if (canPatrol && patrolPoints.Length > 0)
+        {
+            currentPatrolIndex = GetClosestPatrolPointIndex();
+            agent.SetDestination(patrolPoints[currentPatrolIndex].position);
+            enemyAnimator.SetBool("isWalking", true);
+            enemyAnimator.ResetTrigger("Idle");
+        }
+        else
+        {
+            enemyAnimator.SetBool("isWalking", false);
+            enemyAnimator.SetBool("isRunning", false);
+            enemyAnimator.SetTrigger("Idle"); // ✅ 非巡逻恢复Idle动画
+        }
     }
 
     void RotateTowardsMovement()
@@ -172,12 +195,10 @@ public class EnemyAI : MonoBehaviour
         }
     }
 
-    // ✅ 修改后的协程：提前触发Rebirth动画
     IEnumerator HandlePlayerCaught()
     {
-        yield return new WaitForSeconds(1f); // 等待攻击动画播放
+        yield return new WaitForSeconds(1f);
 
-        // 黑屏淡入
         float t = 0f;
         Color originalColor = blackScreen.color;
         while (t < blackFadeDuration)
@@ -186,38 +207,43 @@ public class EnemyAI : MonoBehaviour
             blackScreen.color = new Color(originalColor.r, originalColor.g, originalColor.b, Mathf.Lerp(0f, 1f, t / blackFadeDuration));
             yield return null;
         }
+
         blackScreen.color = new Color(originalColor.r, originalColor.g, originalColor.b, 1f);
 
-        // 重置位置（此时屏幕全黑）
         player.position = playerRespawnPoint.position;
         transform.position = startPosition;
         agent.Warp(startPosition);
         Controller.isCrouching = false;
 
-        // 关键修改：提前触发复活动画！
         if (playerAnimator != null)
         {
             playerAnimator.applyRootMotion = false;
-            playerAnimator.SetTrigger("Rebirth"); // 黑屏期间触发
+            playerAnimator.SetTrigger("Rebirth");
         }
 
-        // 重置玩家姿势
         playerModel.localPosition = Vector3.zero;
         playerModel.localRotation = Quaternion.identity;
         playerAnimator.SetBool("IsCrouching", false);
 
-        // 黑屏保持
         yield return new WaitForSeconds(blackStayDuration);
 
-        // 恢复敌人巡逻
         agent.isStopped = false;
         state = 0;
-        currentPatrolIndex = GetClosestPatrolPointIndex();
-        agent.SetDestination(patrolPoints[currentPatrolIndex].position);
-        enemyAnimator.SetBool("isRunning", false);
-        enemyAnimator.SetBool("isWalking", true);
 
-        // 黑屏淡出（此时Rebirth动画已在播放）
+        if (canPatrol && patrolPoints.Length > 0)
+        {
+            currentPatrolIndex = GetClosestPatrolPointIndex();
+            agent.SetDestination(patrolPoints[currentPatrolIndex].position);
+            enemyAnimator.SetBool("isWalking", true);
+            enemyAnimator.ResetTrigger("Idle");
+        }
+        else
+        {
+            enemyAnimator.SetBool("isWalking", false);
+            enemyAnimator.SetBool("isRunning", false);
+            enemyAnimator.SetTrigger("Idle");
+        }
+
         t = 0f;
         while (t < blackFadeDuration)
         {
@@ -225,6 +251,7 @@ public class EnemyAI : MonoBehaviour
             blackScreen.color = new Color(originalColor.r, originalColor.g, originalColor.b, Mathf.Lerp(1f, 0f, t / blackFadeDuration));
             yield return null;
         }
+
         blackScreen.color = new Color(originalColor.r, originalColor.g, originalColor.b, 0f);
     }
 
@@ -244,7 +271,6 @@ public class EnemyAI : MonoBehaviour
         return closestIndex;
     }
 
-    // 可视化检测范围（编辑器调试用）
     void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.yellow;
@@ -255,5 +281,16 @@ public class EnemyAI : MonoBehaviour
         Gizmos.color = Color.red;
         Gizmos.DrawRay(transform.position, leftDir * detectionRange);
         Gizmos.DrawRay(transform.position, rightDir * detectionRange);
+    }
+
+    public void TryForceDetection()
+    {
+        if (state == 0)
+        {
+            state = 1;
+            enemyAnimator.SetBool("isWalking", false);
+            enemyAnimator.SetBool("isRunning", true);
+            enemyAnimator.ResetTrigger("Idle");
+        }
     }
 }
