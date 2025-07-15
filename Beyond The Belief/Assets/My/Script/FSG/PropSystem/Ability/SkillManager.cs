@@ -69,8 +69,11 @@ public class SkillManager : MonoBehaviour
                         isChargeComplete = false;
 
                         if (skillVFX != null)
+                        {
                             skillVFX.SetActive(true);
-
+                            skillVFX.GetComponent<ParticleSystem>()?.Play();
+                        }
+                           
                         controllerToDisable.enabled = false;
                         animator.speed = 1f;
                         animator.Play(skillAnimationStateName, 0, 0f);
@@ -99,6 +102,10 @@ public class SkillManager : MonoBehaviour
             Debug.Log("提前松手，反向播放动画");
             isCharging = false;
             StartCoroutine(ReverseSkillAnimation());
+            if(skillVFX != null)
+            {
+                skillVFX.SetActive(false);
+            }
         }
     }
 

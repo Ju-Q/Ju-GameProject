@@ -4,6 +4,12 @@ using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.UI;
 
+public enum EnemyLevel
+{
+    Level1,
+    Level2
+}
+
 public class EnemyAI : MonoBehaviour
 {
     [Header("巡逻设置")]
@@ -33,9 +39,18 @@ public class EnemyAI : MonoBehaviour
     public float blackStayDuration = 3f;
     public Transform playerRespawnPoint;
 
+    [Header("技能命中判定")]
+    public EnemyLevel enemyLevel = EnemyLevel.Level1;
+    public string deathTrigger = "Die";
+    public float deathFallDelay = 1f;
+    public float deathFallDistance = 3f;
+    public float deathFallDuration = 1f;
+
     private NavMeshAgent agent;
     private Vector3 startPosition;
+    private Quaternion startRotation;
     private int state = 0; // 0:巡逻/待机, 1:追击, 2:攻击
+    private bool isDead = false;
 
     void Start()
     {
@@ -44,6 +59,7 @@ public class EnemyAI : MonoBehaviour
         agent.angularSpeed = 360f;
 
         startPosition = transform.position;
+        startRotation = transform.rotation;
         enemyAnimator.applyRootMotion = false;
 
         if (canPatrol && patrolPoints.Length > 0)
@@ -51,18 +67,20 @@ public class EnemyAI : MonoBehaviour
             currentPatrolIndex = GetClosestPatrolPointIndex();
             agent.SetDestination(patrolPoints[currentPatrolIndex].position);
             enemyAnimator.SetBool("isWalking", true);
-            enemyAnimator.ResetTrigger("Idle"); // 取消Idle触发
+            enemyAnimator.ResetTrigger("Idle");
         }
         else
         {
             enemyAnimator.SetBool("isWalking", false);
             enemyAnimator.SetBool("isRunning", false);
-            enemyAnimator.SetTrigger("Idle"); // ✅ 非巡逻时播放Idle动画
+            enemyAnimator.SetTrigger("Idle");
         }
     }
 
     void Update()
     {
+        if (isDead) return;
+
         float distanceToPlayer = Vector3.Distance(transform.position, player.position);
 
         switch (state)
@@ -74,10 +92,10 @@ public class EnemyAI : MonoBehaviour
                 }
                 else
                 {
-                    agent.SetDestination(transform.position); // 停止移动
+                    agent.SetDestination(transform.position);
                     enemyAnimator.SetBool("isWalking", false);
                     enemyAnimator.SetBool("isRunning", false);
-                    enemyAnimator.SetTrigger("Idle"); // ✅ 非巡逻状态保持Idle动画
+                    enemyAnimator.SetTrigger("Idle");
                 }
 
                 if (IsPlayerDetected(distanceToPlayer))
@@ -108,8 +126,7 @@ public class EnemyAI : MonoBehaviour
         float angleToPlayer = Vector3.Angle(transform.forward, directionToPlayer);
         if (angleToPlayer > detectionAngle / 2f) return false;
 
-        RaycastHit hit;
-        if (Physics.Raycast(transform.position + Vector3.up, directionToPlayer, out hit, detectionRange))
+        if (Physics.Raycast(transform.position + Vector3.up, directionToPlayer, out RaycastHit hit, detectionRange))
         {
             if (!hit.transform.CompareTag("Player")) return false;
         }
@@ -129,7 +146,7 @@ public class EnemyAI : MonoBehaviour
 
         enemyAnimator.SetBool("isWalking", true);
         enemyAnimator.SetBool("isRunning", false);
-        enemyAnimator.ResetTrigger("Idle"); // ✅ 清除Idle状态
+        enemyAnimator.ResetTrigger("Idle");
     }
 
     void ChasePlayer(float distance)
@@ -182,7 +199,7 @@ public class EnemyAI : MonoBehaviour
         {
             enemyAnimator.SetBool("isWalking", false);
             enemyAnimator.SetBool("isRunning", false);
-            enemyAnimator.SetTrigger("Idle"); // ✅ 非巡逻恢复Idle动画
+            enemyAnimator.SetTrigger("Idle");
         }
     }
 
@@ -212,6 +229,7 @@ public class EnemyAI : MonoBehaviour
 
         player.position = playerRespawnPoint.position;
         transform.position = startPosition;
+        transform.rotation = startRotation;
         agent.Warp(startPosition);
         Controller.isCrouching = false;
 
@@ -271,16 +289,46 @@ public class EnemyAI : MonoBehaviour
         return closestIndex;
     }
 
-    void OnDrawGizmosSelected()
+    void OnTriggerEnter(Collider other)
     {
-        Gizmos.color = Color.yellow;
-        Gizmos.DrawWireSphere(transform.position, detectionRange);
+        if (isDead) return;
+        if (!other.CompareTag("SkillTrigger")) return;
+        Debug.Log("识别技能trigger");
+        var itemManager = FindObjectOfType<ItemPickupManager>();
+        if (itemManager == null) return;
 
-        Vector3 leftDir = Quaternion.Euler(0, -detectionAngle / 2, 0) * transform.forward;
-        Vector3 rightDir = Quaternion.Euler(0, detectionAngle / 2, 0) * transform.forward;
-        Gizmos.color = Color.red;
-        Gizmos.DrawRay(transform.position, leftDir * detectionRange);
-        Gizmos.DrawRay(transform.position, rightDir * detectionRange);
+        int count = itemManager.propACount;
+
+        if ((enemyLevel == EnemyLevel.Level1 && count < 3) || count >= 3)
+        {
+            DieFromSkill();
+        }
+    }
+
+    void DieFromSkill()
+    {
+        isDead = true;
+        enemyAnimator.SetTrigger(deathTrigger);
+        agent.isStopped = true;
+        StartCoroutine(DeathSequence());
+    }
+
+    IEnumerator DeathSequence()
+    {
+        yield return new WaitForSeconds(deathFallDelay);
+
+        Vector3 start = transform.position;
+        Vector3 end = start + Vector3.down * deathFallDistance;
+        float t = 0f;
+
+        while (t < deathFallDuration)
+        {
+            t += Time.deltaTime;
+            transform.position = Vector3.Lerp(start, end, t / deathFallDuration);
+            yield return null;
+        }
+
+        gameObject.SetActive(false);
     }
 
     public void TryForceDetection()
