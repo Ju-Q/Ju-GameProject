@@ -2,6 +2,7 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.AI;
+using UnityEngine.InputSystem.XR;
 using UnityEngine.UI;
 
 public enum EnemyLevel
@@ -163,7 +164,10 @@ public class EnemyAI : MonoBehaviour
             if (playerAnimator != null)
             {
                 playerAnimator.applyRootMotion = true;
+                Controller.isDead = true;
                 playerAnimator.SetTrigger("Caught");
+             
+                playerAnimator.speed = 1;
             }
 
             StartCoroutine(HandlePlayerCaught());
@@ -215,7 +219,6 @@ public class EnemyAI : MonoBehaviour
     IEnumerator HandlePlayerCaught()
     {
         yield return new WaitForSeconds(1f);
-
         float t = 0f;
         Color originalColor = blackScreen.color;
         while (t < blackFadeDuration)
@@ -232,6 +235,7 @@ public class EnemyAI : MonoBehaviour
         transform.rotation = startRotation;
         agent.Warp(startPosition);
         Controller.isCrouching = false;
+        Controller.isDead = false;
 
         if (playerAnimator != null)
         {
@@ -320,6 +324,7 @@ public class EnemyAI : MonoBehaviour
         Vector3 start = transform.position;
         Vector3 end = start + Vector3.down * deathFallDistance;
         float t = 0f;
+        //Controller.isDead = false;
 
         while (t < deathFallDuration)
         {

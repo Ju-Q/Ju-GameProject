@@ -100,17 +100,23 @@ public class SlowZone : MonoBehaviour
 
     private void Update()
     {
-        if (!isInSlowZone || _playerInputs == null || _playerAnimator == null) return;
+   
 
-        // ✅ 如果血量为0，强制动画速度为1（恢复播放）
-        if (playerHealthSlider != null && playerHealthSlider.healthSlider.value <= 0f)
-        {
-            _playerAnimator.speed = 1;
+            if (!isInSlowZone || _playerInputs == null || _playerAnimator == null || _playerController.isDead) return;
+        // ✅ 如果血量为0，强制动画速度为1（恢复播
+
+        
+            if (playerHealthSlider != null && playerHealthSlider.healthSlider.value <= 0f)
+            {
+                _playerAnimator.speed = 1;
+            Debug.Log("111");
+            }
+            else
+            {
+                _playerAnimator.speed = _playerInputs.move == Vector2.zero ? 0 : 1;
+            Debug.Log("222"+ _playerAnimator.speed);
         }
-        else
-        {
-            _playerAnimator.speed = _playerInputs.move == Vector2.zero ? 0 : 1;
-        }
+       
     }
 
     // 检查参数是否存在的辅助方法

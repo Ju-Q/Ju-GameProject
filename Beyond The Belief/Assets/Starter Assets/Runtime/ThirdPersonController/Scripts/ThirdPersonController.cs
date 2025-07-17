@@ -107,6 +107,9 @@ namespace StarterAssets
 
         public bool isCrouching = false;
         public bool isInLadderZone = false;
+
+        public bool isDead = false;
+
         private void Awake()
         {
             if (_mainCamera == null)
