@@ -70,6 +70,7 @@ public class SkillManager : MonoBehaviour
 
                         if (skillVFX != null)
                         {
+                            skillVFX.SetActive(false);
                             skillVFX.SetActive(true);
                             skillVFX.GetComponent<ParticleSystem>()?.Play();
                         }

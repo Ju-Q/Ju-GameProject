@@ -127,8 +127,9 @@ public class EnemyAI : MonoBehaviour
         float angleToPlayer = Vector3.Angle(transform.forward, directionToPlayer);
         if (angleToPlayer > detectionAngle / 2f) return false;
 
-        if (Physics.Raycast(transform.position + Vector3.up, directionToPlayer, out RaycastHit hit, detectionRange))
+        if (Physics.Raycast(transform.position + Vector3.up, directionToPlayer, out RaycastHit hit, detectionRange, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
         {
+            //Debug.Log("Raycast hit: " + hit.transform.name); // 添加这行
             if (!hit.transform.CompareTag("Player")) return false;
         }
 
@@ -230,6 +231,14 @@ public class EnemyAI : MonoBehaviour
 
         blackScreen.color = new Color(originalColor.r, originalColor.g, originalColor.b, 1f);
 
+        if (SkillPointManager.Instance != null && SkillPointRecord.Instance != null)
+        {
+            int savedPoints = SkillPointRecord.Instance.GetRememberedPoints();
+            SkillPointManager.Instance.SetSkillPoints(savedPoints);
+            Debug.Log($"死亡，技能点恢复为保存值：{savedPoints}");
+        }
+
+
         player.position = playerRespawnPoint.position;
         transform.position = startPosition;
         transform.rotation = startRotation;
@@ -246,6 +255,14 @@ public class EnemyAI : MonoBehaviour
         playerModel.localPosition = Vector3.zero;
         playerModel.localRotation = Quaternion.identity;
         playerAnimator.SetBool("IsCrouching", false);
+
+        var zones = FindObjectsOfType<ForceDetectionZone>();
+        foreach (var zone in zones)
+        {
+            zone.ResetTrigger();
+        }
+
+
 
         yield return new WaitForSeconds(blackStayDuration);
 
@@ -312,6 +329,8 @@ public class EnemyAI : MonoBehaviour
     void DieFromSkill()
     {
         isDead = true;
+
+
         enemyAnimator.SetTrigger(deathTrigger);
         agent.isStopped = true;
         StartCoroutine(DeathSequence());
@@ -333,6 +352,8 @@ public class EnemyAI : MonoBehaviour
             yield return null;
         }
 
+        float delayAfterFall = 30f; // 🔧 自己设定的延迟时间（单位：秒）
+        yield return new WaitForSeconds(delayAfterFall);
         gameObject.SetActive(false);
     }
 
