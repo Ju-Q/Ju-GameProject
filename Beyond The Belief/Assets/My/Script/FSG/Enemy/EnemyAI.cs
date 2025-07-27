@@ -158,6 +158,10 @@ public class EnemyAI : MonoBehaviour
 
         if (distance <= catchDistance)
         {
+
+            if (Controller.isDead) return;
+            Controller.isDead = true;
+
             state = 2;
             agent.isStopped = true;
             enemyAnimator.SetTrigger("Attack");
@@ -292,6 +296,9 @@ public class EnemyAI : MonoBehaviour
         }
 
         blackScreen.color = new Color(originalColor.r, originalColor.g, originalColor.b, 0f);
+
+        Controller.isDead = false;
+
     }
 
     int GetClosestPatrolPointIndex()
@@ -338,6 +345,8 @@ public class EnemyAI : MonoBehaviour
 
     IEnumerator DeathSequence()
     {
+
+        agent.enabled = false;
         yield return new WaitForSeconds(deathFallDelay);
 
         Vector3 start = transform.position;
@@ -352,8 +361,9 @@ public class EnemyAI : MonoBehaviour
             yield return null;
         }
 
-        float delayAfterFall = 30f; // 🔧 自己设定的延迟时间（单位：秒）
+        float delayAfterFall = 1f; // 🔧 自己设定的延迟时间（单位：秒）
         yield return new WaitForSeconds(delayAfterFall);
+        Debug.Log("死去的敌人该隐藏了");
         gameObject.SetActive(false);
     }
 

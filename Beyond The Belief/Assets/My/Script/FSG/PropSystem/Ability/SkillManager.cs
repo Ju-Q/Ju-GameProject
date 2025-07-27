@@ -33,10 +33,11 @@ public class SkillManager : MonoBehaviour
     public float triggerEndRadius = 3f;               // 最终半径
 
     private ItemPickupManager itemPickupManager;
-
+    private ThirdPersonController playerController;
     void Start()
     {
         itemPickupManager = GetComponent<ItemPickupManager>();
+        playerController = GetComponent<ThirdPersonController>(); 
     }
 
     private void Update()
@@ -45,6 +46,12 @@ public class SkillManager : MonoBehaviour
 
         if (inputs.skillHold)
         {
+            if (playerController != null && playerController.isCrouching)
+            {
+                // 蹲下时不能释放技能
+                return;
+            }
+
             if (SkillPointManager.Instance != null &&
                 SkillPointManager.Instance.currentSkillPoints > 0 &&
                 itemPickupManager != null && itemPickupManager.propACount > 0)

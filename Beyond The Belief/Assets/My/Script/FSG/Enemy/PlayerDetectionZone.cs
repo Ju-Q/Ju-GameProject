@@ -4,6 +4,7 @@ using UnityEngine;
 public class PlayerDetectionZone : MonoBehaviour
 {
     public EnemyAI enemyAI;
+    public float detectionRange = 10f; // 设置你想要的检测距离
 
     private void OnTriggerStay(Collider other)
     {
@@ -12,7 +13,11 @@ public class PlayerDetectionZone : MonoBehaviour
             ThirdPersonController controller = other.GetComponent<ThirdPersonController>();
             if (controller != null && !controller.isCrouching)
             {
-                enemyAI.TryForceDetection(); // 强制发现
+                float distance = Vector3.Distance(enemyAI.transform.position, other.transform.position);
+                if (distance < detectionRange)
+                {
+                    enemyAI.TryForceDetection(); // 强制发现
+                }
             }
         }
     }

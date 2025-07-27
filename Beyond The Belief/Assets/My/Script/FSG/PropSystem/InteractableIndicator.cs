@@ -3,7 +3,7 @@ using System.Collections;
 
 public class InteractableIndicator : MonoBehaviour
 {
-    [Header("UI配置")]
+    [Header("消失对象")]
     public GameObject indicatorGameObject;
 
     [Header("动画配置")]

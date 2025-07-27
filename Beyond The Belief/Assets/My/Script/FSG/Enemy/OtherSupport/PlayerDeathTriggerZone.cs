@@ -1,17 +1,23 @@
 using UnityEngine;
+using System.Collections;
 
 public class PlayerDeathTriggerZone : MonoBehaviour
 {
     [Header("敌人控制")]
-    public EnemyAI enemyAI; // 拖拽敌人对象的 EnemyAI 脚本
-    [Header("触发区域")]
-    public Collider triggerZone; // 拖拽你想检测的区域（必须勾选 isTrigger）
-    [Header("目标动画")]
-    public Animator targetAnimator; // 拖拽要触发动画的 Animator
-    public string triggerName = "SpecialEvent"; // Animator 的 trigger 名字
+    public EnemyAI enemyAI;
 
-    private bool playerHasEnteredZone = false; // 玩家是否进入过区域
-    private bool hasTriggered = false;         // 是否已经触发过逻辑
+    [Header("触发区域")]
+    public Collider triggerZone;
+
+    [Header("目标动画")]
+    public Animator targetAnimator;
+    public string triggerName = "SpecialEvent";
+
+    [Header("触发延迟")]
+    public float triggerDelay = 1f; // 延迟秒数
+
+    private bool playerHasEnteredZone = false;
+    private bool hasTriggered = false;
 
     void Update()
     {
@@ -20,12 +26,14 @@ public class PlayerDeathTriggerZone : MonoBehaviour
 
         if (!playerHasEnteredZone && enemyAI.Controller.isDead)
         {
-            TriggerAnimation();
+            StartCoroutine(TriggerAnimation());
         }
     }
 
-    private void TriggerAnimation()
+    private IEnumerator TriggerAnimation()
     {
+        yield return new WaitForSeconds(triggerDelay); // 延迟
+
         if (targetAnimator != null && !string.IsNullOrEmpty(triggerName))
         {
             targetAnimator.SetTrigger(triggerName);
@@ -44,7 +52,6 @@ public class PlayerDeathTriggerZone : MonoBehaviour
         }
     }
 
-    // 可用于重置（例如重开关卡）
     public void ResetTriggerState()
     {
         hasTriggered = false;
