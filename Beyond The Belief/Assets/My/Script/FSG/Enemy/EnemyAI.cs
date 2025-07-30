@@ -2,7 +2,6 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.AI;
-using UnityEngine.InputSystem.XR;
 using UnityEngine.UI;
 
 public enum EnemyLevel
@@ -53,6 +52,11 @@ public class EnemyAI : MonoBehaviour
     private int state = 0; // 0:巡逻/待机, 1:追击, 2:攻击
     private bool isDead = false;
 
+    // 新增：黑屏期间暂停AI
+    private bool isInBlackScreen = false;
+    [Header("特效设置")]
+    public GameObject catchEffect; // 进入抓捕范围时需要关闭的特效
+
     void Start()
     {
         agent = GetComponent<NavMeshAgent>();
@@ -80,7 +84,8 @@ public class EnemyAI : MonoBehaviour
 
     void Update()
     {
-        if (isDead) return;
+        // 黑屏中或敌人死亡时，不执行任何检测和追击
+        if (isDead || isInBlackScreen) return;
 
         float distanceToPlayer = Vector3.Distance(transform.position, player.position);
 
@@ -129,7 +134,6 @@ public class EnemyAI : MonoBehaviour
 
         if (Physics.Raycast(transform.position + Vector3.up, directionToPlayer, out RaycastHit hit, detectionRange, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
         {
-            //Debug.Log("Raycast hit: " + hit.transform.name); // 添加这行
             if (!hit.transform.CompareTag("Player")) return false;
         }
 
@@ -158,20 +162,24 @@ public class EnemyAI : MonoBehaviour
 
         if (distance <= catchDistance)
         {
-
             if (Controller.isDead) return;
             Controller.isDead = true;
+
+            if (catchEffect != null)
+            {
+                catchEffect.SetActive(false);
+            }
 
             state = 2;
             agent.isStopped = true;
             enemyAnimator.SetTrigger("Attack");
+            enemyAnimator.SetBool("isRunning", false);
 
             if (playerAnimator != null)
             {
                 playerAnimator.applyRootMotion = true;
                 Controller.isDead = true;
                 playerAnimator.SetTrigger("Caught");
-             
                 playerAnimator.speed = 1;
             }
 
@@ -223,6 +231,8 @@ public class EnemyAI : MonoBehaviour
 
     IEnumerator HandlePlayerCaught()
     {
+        isInBlackScreen = true; // 黑屏开始，暂停AI
+
         yield return new WaitForSeconds(1f);
         float t = 0f;
         Color originalColor = blackScreen.color;
@@ -232,7 +242,6 @@ public class EnemyAI : MonoBehaviour
             blackScreen.color = new Color(originalColor.r, originalColor.g, originalColor.b, Mathf.Lerp(0f, 1f, t / blackFadeDuration));
             yield return null;
         }
-
         blackScreen.color = new Color(originalColor.r, originalColor.g, originalColor.b, 1f);
 
         if (SkillPointManager.Instance != null && SkillPointRecord.Instance != null)
@@ -241,7 +250,6 @@ public class EnemyAI : MonoBehaviour
             SkillPointManager.Instance.SetSkillPoints(savedPoints);
             Debug.Log($"死亡，技能点恢复为保存值：{savedPoints}");
         }
-
 
         player.position = playerRespawnPoint.position;
         transform.position = startPosition;
@@ -265,8 +273,6 @@ public class EnemyAI : MonoBehaviour
         {
             zone.ResetTrigger();
         }
-
-
 
         yield return new WaitForSeconds(blackStayDuration);
 
@@ -294,11 +300,10 @@ public class EnemyAI : MonoBehaviour
             blackScreen.color = new Color(originalColor.r, originalColor.g, originalColor.b, Mathf.Lerp(1f, 0f, t / blackFadeDuration));
             yield return null;
         }
-
         blackScreen.color = new Color(originalColor.r, originalColor.g, originalColor.b, 0f);
 
         Controller.isDead = false;
-
+        isInBlackScreen = false; // 黑屏结束，恢复AI
     }
 
     int GetClosestPatrolPointIndex()
@@ -336,8 +341,6 @@ public class EnemyAI : MonoBehaviour
     void DieFromSkill()
     {
         isDead = true;
-
-
         enemyAnimator.SetTrigger(deathTrigger);
         agent.isStopped = true;
         StartCoroutine(DeathSequence());
@@ -345,14 +348,12 @@ public class EnemyAI : MonoBehaviour
 
     IEnumerator DeathSequence()
     {
-
         agent.enabled = false;
         yield return new WaitForSeconds(deathFallDelay);
 
         Vector3 start = transform.position;
         Vector3 end = start + Vector3.down * deathFallDistance;
         float t = 0f;
-        //Controller.isDead = false;
 
         while (t < deathFallDuration)
         {
@@ -361,9 +362,9 @@ public class EnemyAI : MonoBehaviour
             yield return null;
         }
 
-        float delayAfterFall = 1f; // 🔧 自己设定的延迟时间（单位：秒）
+        float delayAfterFall = 1f;
         yield return new WaitForSeconds(delayAfterFall);
-        Debug.Log("死去的敌人该隐藏了");
+        //Debug.Log("死去的敌人该隐藏了");
         gameObject.SetActive(false);
     }
 

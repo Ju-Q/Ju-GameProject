@@ -42,6 +42,12 @@ public class SkillManager : MonoBehaviour
 
     private void Update()
     {
+
+        if (playerController != null && playerController.isDead)
+        {
+            return;
+        }
+
         if (isSkillPlaying) return;
 
         if (inputs.skillHold)
