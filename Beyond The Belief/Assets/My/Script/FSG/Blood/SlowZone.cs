@@ -15,10 +15,14 @@ public class SlowZone : MonoBehaviour
     public float animationTransitionTime = 0.2f;
 
     [Tooltip("手动指定包含Animator的子对象（如果不在根对象上）")]
-    public Transform animatorTarget; // 新增：手动指定Animator所在对象
+    public Transform animatorTarget;
 
-    [Header("血量检测")]
-    public PlayerHealthSlider playerHealthSlider; // 拖入或动态查找
+    [Header("血量检测 & 伤害设置")]
+    public PlayerHealthSlider playerHealthSlider;
+    public float damagePerSecond = 10f;
+
+    [Header("拾取管理器引用")]
+    public ItemPickupManager pickupManager;
 
     private ThirdPersonController _playerController;
     private StarterAssetsInputs _playerInputs;
@@ -42,19 +46,16 @@ public class SlowZone : MonoBehaviour
     {
         if (_playerController == null)
         {
-            // 获取根对象上的组件
             _playerController = player.GetComponentInParent<ThirdPersonController>();
             _playerInputs = player.GetComponentInParent<StarterAssetsInputs>();
             _characterController = player.GetComponentInParent<CharacterController>();
 
-            // 优先使用手动指定的Animator目标，否则自动查找
             if (animatorTarget != null)
             {
                 _playerAnimator = animatorTarget.GetComponent<Animator>();
             }
             else
             {
-                // 在整个层级中查找Animator
                 _playerAnimator = player.GetComponentInChildren<Animator>();
             }
 
@@ -63,15 +64,20 @@ public class SlowZone : MonoBehaviour
                 Debug.LogError("未找到Animator组件！请检查层级或手动指定animatorTarget");
             }
 
-            // 保存原始值
             _originalMoveSpeed = _playerController.MoveSpeed;
             _originalSprintSpeed = _playerController.SprintSpeed;
+
+            if (pickupManager == null)
+            {
+                pickupManager = player.GetComponentInParent<ItemPickupManager>();
+                if (pickupManager == null)
+                    Debug.LogWarning("SlowZone: 未指定 ItemPickupManager，无法检测 PropA 数量");
+            }
         }
     }
 
     private void ApplySlowEffects()
     {
-        // 设置减速
         _playerController.MoveSpeed = slowMoveSpeed;
 
         if (disableSprint)
@@ -83,43 +89,46 @@ public class SlowZone : MonoBehaviour
             }
         }
 
-        // 设置动画参数
         if (useSlowWalkAnimation && _playerAnimator != null)
         {
-            Debug.Log($"正在设置动画参数 {slowWalkAnimParameter} 为 true (当前值: {_playerAnimator.GetBool(slowWalkAnimParameter)})");
-
-            // 确保Animator已启用
             _playerAnimator.enabled = true;
-
             _playerAnimator.SetBool(slowWalkAnimParameter, true);
-            _playerAnimator.Update(0f); // 强制立即更新
-
-            Debug.Log($"设置后值: {_playerAnimator.GetBool(slowWalkAnimParameter)} | 参数存在: {ParameterExists(_playerAnimator, slowWalkAnimParameter)}");
+            _playerAnimator.Update(0f);
         }
+    }
+
+    private void OnTriggerStay(Collider other)
+    {
+        if (!other.CompareTag("Player") || playerHealthSlider == null)
+            return;
+
+        // ✅ 修复 return 逻辑
+        if (pickupManager != null && pickupManager.propACount >= 3)
+        {
+            // Debug.Log("拾取3个PropA，停止扣血");
+            return;
+        }
+
+        float damage = damagePerSecond * Time.deltaTime;
+        playerHealthSlider.healthSlider.value = Mathf.Max(0f, playerHealthSlider.healthSlider.value - damage);
     }
 
     private void Update()
     {
-   
+        if (!isInSlowZone || _playerInputs == null || _playerAnimator == null || _playerController.isDead)
+            return;
 
-            if (!isInSlowZone || _playerInputs == null || _playerAnimator == null || _playerController.isDead) return;
-        // ✅ 如果血量为0，强制动画速度为1（恢复播
-
-        
-            if (playerHealthSlider != null && playerHealthSlider.healthSlider.value <= 0f)
-            {
-                _playerAnimator.speed = 1;
-            Debug.Log("111");
-            }
-            else
-            {
-                _playerAnimator.speed = _playerInputs.move == Vector2.zero ? 0 : 1;
-            Debug.Log("222"+ _playerAnimator.speed);
+        // ✅ 空引用保护 + 动画速度控制
+        if (playerHealthSlider != null && playerHealthSlider.healthSlider.value <= 0f)
+        {
+            _playerAnimator.speed = 1;
         }
-       
+        else
+        {
+            _playerAnimator.speed = _playerInputs.move == Vector2.zero ? 0 : 1;
+        }
     }
 
-    // 检查参数是否存在的辅助方法
     private bool ParameterExists(Animator animator, string paramName)
     {
         foreach (var param in animator.parameters)

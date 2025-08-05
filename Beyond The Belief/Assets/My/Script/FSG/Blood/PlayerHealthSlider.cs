@@ -1,3 +1,4 @@
+using StarterAssets;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
@@ -21,13 +22,17 @@ public class PlayerHealthSlider : MonoBehaviour
     [Header("Audio Settings")]
     public AudioSource deathAudioSource;
 
+    [Header("Character Components")]
+    public Animator playerAnimator;
+    public Transform playerModel;
+
+    [Header("Item Pickup Manager")]
+    public ItemPickupManager pickupManager;
+    public ThirdPersonController Controller;
+
     private bool isInTrigger = false;
     private bool isDead = false;
     private Coroutine changeHealthCoroutine;
-
-    [Header("Character Components")]
-    public Animator playerAnimator;             // 角色Animator
-    public Transform playerModel;               // 模型Transform（角色模型作为子对象）
 
     private void Start()
     {
@@ -38,11 +43,13 @@ public class PlayerHealthSlider : MonoBehaviour
             blackoutImage.color = new Color(0, 0, 0, 0);
 
         UpdateBloodImageAlpha();
+
+        if (pickupManager == null)
+            pickupManager = FindObjectOfType<ItemPickupManager>();
     }
 
     private void Update()
     {
-        // 控制死亡音乐音量
         if (deathAudioSource != null)
         {
             if (healthSlider.value < 1f && !deathAudioSource.isPlaying)
@@ -68,11 +75,17 @@ public class PlayerHealthSlider : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if (isDead) return;
+        if (isDead || Controller.isDead) return; // 新增判断
 
         RespawnPointSetter setter = other.GetComponent<RespawnPointSetter>();
         if (setter != null)
         {
+            if (pickupManager != null && pickupManager.propACount >= 3)
+            {
+                Debug.Log("PropA数量>=3，进入减速区不扣血");
+                return;
+            }
+
             isInTrigger = true;
 
             RespawnManager.Instance.SetCurrentRespawnPoint(setter.respawnPoint);
@@ -83,11 +96,17 @@ public class PlayerHealthSlider : MonoBehaviour
 
     private void OnTriggerExit(Collider other)
     {
-        if (isDead) return;
+        if (isDead || Controller.isDead) return; // 新增判断
 
         RespawnPointSetter setter = other.GetComponent<RespawnPointSetter>();
         if (setter != null)
         {
+            if (pickupManager != null && pickupManager.propACount >= 3)
+            {
+                Debug.Log("PropA数量>=3，离开减速区不回血");
+                return;
+            }
+
             isInTrigger = false;
             StartChangeHealthValue(healthSlider.value, 1f, recoverDuration);
         }
@@ -113,18 +132,10 @@ public class PlayerHealthSlider : MonoBehaviour
             healthSlider.value = value;
             UpdateBloodImageAlpha();
 
-            if (value <= 0f && !isDead)
+            // 死亡触发
+            if (value <= 0f && !isDead && !Controller.isDead)
             {
-                isDead = true;
-
-                // 播放死亡动画
-                if (playerAnimator != null)
-                {
-                    playerAnimator.applyRootMotion = true;
-                    playerAnimator.SetTrigger("MarshDie");
-                }
-
-                StartCoroutine(StartBlackout());
+                TriggerDeath();
                 yield break;
             }
 
@@ -134,19 +145,24 @@ public class PlayerHealthSlider : MonoBehaviour
         healthSlider.value = to;
         UpdateBloodImageAlpha();
 
-        if (healthSlider.value <= 0f && !isDead)
+        if (healthSlider.value <= 0f && !isDead && !Controller.isDead)
         {
-            isDead = true;
-
-            // 播放死亡动画
-            if (playerAnimator != null)
-            {
-                playerAnimator.applyRootMotion = true;
-                playerAnimator.SetTrigger("MarshDie");
-            }
-
-            StartCoroutine(StartBlackout());
+            TriggerDeath();
         }
+    }
+
+    private void TriggerDeath()
+    {
+        isDead = true;
+        Controller.isDead = true; // 同步给 ThirdPersonController
+
+        if (playerAnimator != null)
+        {
+            playerAnimator.applyRootMotion = true;
+            playerAnimator.SetTrigger("MarshDie");
+        }
+
+        StartCoroutine(StartBlackout());
     }
 
     private void UpdateBloodImageAlpha()
@@ -162,6 +178,10 @@ public class PlayerHealthSlider : MonoBehaviour
 
     private IEnumerator StartBlackout()
     {
+        // 如果已经由外部触发死亡，这里不重复执行
+        if (Controller.isDead && !isDead)
+            yield break;
+
         // 黑屏淡入
         float elapsed = 0f;
         while (elapsed < blackoutFadeInTime)
@@ -172,35 +192,26 @@ public class PlayerHealthSlider : MonoBehaviour
             yield return null;
         }
 
-        // 黑屏完全
         blackoutImage.color = Color.black;
 
-        // 设置血量、隐藏受伤UI
         healthSlider.value = 1f;
         UpdateBloodImageAlpha();
 
-        // 重置玩家到重生点
         Transform respawnPoint = RespawnManager.Instance.GetCurrentRespawnPoint();
         if (respawnPoint != null)
         {
             transform.position = respawnPoint.position;
         }
 
-        // 播放 Rebirth 动画
         if (playerAnimator != null)
         {
-            
             playerAnimator.SetTrigger("Rebirth");
         }
 
-     
-
-        // 黑屏停留
         yield return new WaitForSeconds(blackoutDuration);
         playerAnimator.applyRootMotion = false;
 
-        // 等待动画开始（或插入一点延迟），再归位模型
-        yield return new WaitForSeconds(0.1f); // 可根据动画设置改成 0.2f~0.3f
+        yield return new WaitForSeconds(0.1f);
 
         if (playerModel != null)
         {
@@ -208,7 +219,6 @@ public class PlayerHealthSlider : MonoBehaviour
             playerModel.localRotation = Quaternion.identity;
         }
 
-        // 黑屏淡出
         elapsed = 0f;
         while (elapsed < blackoutFadeOutTime)
         {
@@ -220,6 +230,7 @@ public class PlayerHealthSlider : MonoBehaviour
 
         // 清除死亡状态
         isDead = false;
+        Controller.isDead = false;
 
         if (deathAudioSource != null && deathAudioSource.isPlaying)
         {
@@ -227,5 +238,4 @@ public class PlayerHealthSlider : MonoBehaviour
             playerAnimator.applyRootMotion = false;
         }
     }
-
 }

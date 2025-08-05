@@ -4,13 +4,18 @@ using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.UI;
 
-public enum EnemyLevel
+public enum EnemyLevel2
 {
     Level1,
     Level2
 }
+public enum EnemyType
+{
+    Normal,
+    Ambush
+}
 
-public class EnemyAI : MonoBehaviour
+public class EnemyAmbushAI : MonoBehaviour
 {
     [Header("巡逻设置")]
     public bool canPatrol = true;
@@ -61,16 +66,37 @@ public class EnemyAI : MonoBehaviour
     [Header("特效设置")]
     public GameObject catchEffect;
 
+    [Header("敌人类型")]
+    public EnemyType enemyType = EnemyType.Normal;
+
+    [Header("埋伏模式设置")]
+    public bool isAmbushActive = false; // 初始为false，表示未激活
+    public string wakeTrigger = "Wake"; // wake动画触发器
+    public Transform patrolAreaCenter; // 巡逻区域中心点
+    public float patrolAreaRadius = 5f; // 巡逻区域半径
+    public float ambushDelay = 2f; // 触发后等待秒数
+
+
     void Start()
     {
         agent = GetComponent<NavMeshAgent>();
         agent.acceleration = 10f;
         agent.angularSpeed = 360f;
-
         startPosition = transform.position;
         startRotation = transform.rotation;
         enemyAnimator.applyRootMotion = false;
 
+        if (enemyType == EnemyType.Ambush)
+        {
+            // 埋伏状态：完全静止，动画进入Idle或空状态
+            agent.enabled = false;
+            enemyAnimator.SetBool("isWalking", false);
+            enemyAnimator.SetBool("isRunning", false);
+            enemyAnimator.ResetTrigger("Idle");
+            return;
+        }
+
+        // 普通敌人的初始化
         if (canPatrol && patrolPoints.Length > 0)
         {
             currentPatrolIndex = GetClosestPatrolPointIndex();
@@ -196,6 +222,12 @@ public class EnemyAI : MonoBehaviour
         state = 0;
         agent.isStopped = false;
 
+        if (enemyType == EnemyType.Ambush)
+        {
+            StartCoroutine(RandomPatrolInArea());
+            return;
+        }
+
         if (canPatrol && patrolPoints.Length > 0)
         {
             currentPatrolIndex = GetClosestPatrolPointIndex();
@@ -210,6 +242,22 @@ public class EnemyAI : MonoBehaviour
             enemyAnimator.SetTrigger("Idle");
         }
     }
+
+    IEnumerator RandomPatrolInArea()
+    {
+        while (state == 0) // 巡逻状态
+        {
+            Vector3 randomPoint = patrolAreaCenter.position + Random.insideUnitSphere * patrolAreaRadius;
+            if (NavMesh.SamplePosition(randomPoint, out NavMeshHit hit, patrolAreaRadius, NavMesh.AllAreas))
+            {
+                agent.SetDestination(hit.position);
+            }
+            enemyAnimator.SetBool("isWalking", true);
+            enemyAnimator.SetBool("isRunning", false);
+            yield return new WaitForSeconds(Random.Range(3f, 6f)); // 随机停留时间
+        }
+    }
+
 
     void RotateTowardsMovement()
     {
@@ -366,6 +414,7 @@ public class EnemyAI : MonoBehaviour
         gameObject.SetActive(false);
     }
 
+
     public void TryForceDetection()
     {
         if (state == 0)
@@ -376,4 +425,41 @@ public class EnemyAI : MonoBehaviour
             enemyAnimator.ResetTrigger("Idle");
         }
     }
+
+    public void ActivateAmbush()
+    {
+        if (enemyType != EnemyType.Ambush || isAmbushActive) return;
+
+        isAmbushActive = true;
+        StartCoroutine(DelayBeforeWake());
+    }
+
+    IEnumerator DelayBeforeWake()
+    {
+        // 先等待指定秒数
+        yield return new WaitForSeconds(ambushDelay);
+
+        // 激活AI并播放wake动画
+        agent.enabled = true;
+        agent.isStopped = true; // 等待wake动画播放
+        enemyAnimator.SetTrigger(wakeTrigger);
+
+        // 等待wake动画播放完成再追击
+        StartCoroutine(WaitWakeAndChase());
+    }
+
+
+
+    IEnumerator WaitWakeAndChase()
+    {
+        // 这里假设wake动画长度为1.5秒，可以改成用动画事件触发
+        yield return new WaitForSeconds(1.5f);
+        state = 1; // 切换到追击模式
+        agent.isStopped = false;
+        enemyAnimator.SetBool("isRunning", true);
+    }
+
+
+
+
 }
