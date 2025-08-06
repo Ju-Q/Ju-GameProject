@@ -4,6 +4,7 @@ using UnityEngine;
 using TMPro;
 using UnityEngine.UI;
 using System; // 添加以支持 Action
+using StarterAssets;
 
 public class DialogueManager1 : MonoBehaviour
 {
@@ -21,17 +22,20 @@ public class DialogueManager1 : MonoBehaviour
 
     private float inputCooldown = 0.3f;
     private bool inputLocked = false;
+    private ThirdPersonController Controller;
 
     // 对话结束事件
     public Action OnDialogueEnd;
 
     void Start()
     {
+        Controller = GameObject.FindGameObjectWithTag("Player").GetComponent<ThirdPersonController>();
         if (dialogues.Count > 0)
         {
             backgroundImage.enabled = false;
             characterPortrait.enabled = false;
             UpdateDialogueUI();
+            Controller.canMove = false;
         }
         else
         {
@@ -150,8 +154,8 @@ public class DialogueManager1 : MonoBehaviour
         characterPortrait.enabled = false;
         isDialogueActive = false;
 
-        Debug.Log("对话序列结束.");
-
+        //Debug.Log("对话序列结束.");
+        Controller.canMove = true;
         // 触发事件通知外部
         OnDialogueEnd?.Invoke();
     }

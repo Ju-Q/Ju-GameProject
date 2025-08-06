@@ -160,6 +160,7 @@ public class PlayerHealthSlider : MonoBehaviour
         {
             playerAnimator.applyRootMotion = true;
             playerAnimator.SetTrigger("MarshDie");
+            Controller.canMove = false;
         }
 
         StartCoroutine(StartBlackout());
@@ -218,7 +219,7 @@ public class PlayerHealthSlider : MonoBehaviour
             playerModel.localPosition = Vector3.zero;
             playerModel.localRotation = Quaternion.identity;
         }
-
+        Controller.canMove = true;
         elapsed = 0f;
         while (elapsed < blackoutFadeOutTime)
         {

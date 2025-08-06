@@ -177,6 +177,7 @@ public class EnemyAI : MonoBehaviour
                 playerAnimator.applyRootMotion = true;
                 Controller.isDead = true;
                 playerAnimator.SetTrigger("Caught");
+                Controller.canMove = false;
                 playerAnimator.speed = 1;
             }
 
@@ -280,6 +281,9 @@ public class EnemyAI : MonoBehaviour
             enemyAnimator.SetTrigger("Idle");
         }
 
+
+        Controller.canMove = true;
+        
         t = 0f;
         while (t < blackFadeDuration)
         {

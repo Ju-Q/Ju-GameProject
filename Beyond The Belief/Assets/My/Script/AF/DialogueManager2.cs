@@ -1,5 +1,6 @@
 using System.Collections;
 using UnityEngine;
+using StarterAssets;
 
 public class DialogueManager2 : MonoBehaviour
 {
@@ -8,10 +9,12 @@ public class DialogueManager2 : MonoBehaviour
     private bool isWaitingForInput = false;
     private bool hasDialogueBeenShown = false; // 记录对话是否已经显示过
     public float showCanvasTime = 5f;
+    //private ThirdPersonController Controller;
 
     private void Start()
     {
         ShowCanvas.SetActive(false);
+       // Controller = GameObject.FindGameObjectWithTag("Player").GetComponent<ThirdPersonController>();
     }
 
     private void OnTriggerEnter(Collider other)
@@ -36,6 +39,7 @@ public class DialogueManager2 : MonoBehaviour
         hasDialogueBeenShown = true; // 标记对话已经显示过
         isCanvasActive = true;
         ShowCanvas.SetActive(true);
+        //Controller.canMove = false;
 
         // 调用淡入效果
         yield return StartCoroutine(FadeInCanvas());
@@ -101,5 +105,6 @@ public class DialogueManager2 : MonoBehaviour
         canvasGroup.alpha = 0f;
         ShowCanvas.SetActive(false);
         isCanvasActive = false;
+        //Controller.canMove = true;
     }
 }

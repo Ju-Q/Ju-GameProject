@@ -13,6 +13,9 @@ namespace StarterAssets
 #endif
     public class ThirdPersonController : MonoBehaviour
     {
+        [Header("Character Model")]
+        public Transform characterModel; // 在 Inspector 拖入角色模型
+
         [Header("Player Movement Speeds")]
         public float MoveSpeed = 2.0f;
         public float SprintSpeed = 5.335f;
@@ -63,19 +66,13 @@ namespace StarterAssets
         private int _animIDCrouchToStand;
 
         [Header("Crouch Settings")]
+        public bool isCrouching = false;
         public float crouchHeight = 1.0f;  // 蹲下时的碰撞体高度
         private float standingHeight;      // 保存原始高度
         private Vector3 standingCenter;    // 保存原始中心点
-
         private bool _isTransitioningCrouch = false;
-        [Header("模型引用")]
-        public Transform characterModel; // 在 Inspector 拖入角色模型
-        [Header("站立动画时间")]
         public float standUpAnimationTime = 1.0f; // 起立动画的预计时长（秒）
-
-        [Header("平滑归零时间")]
         public float smoothResetTime = 0.5f; // 位置/旋转归零的过渡时间
-
         private float _standUpTimer = 0f;
         private bool _isStandingUp = false;
         private bool _isSmoothingReset = false; // 是否正在平滑归零
@@ -90,7 +87,6 @@ namespace StarterAssets
         private bool isChargeComplete = false;
         private bool isReversing = false;
         private bool isCastingSkill = false;
-
         public string skillChargeAnim = "Charge";
         public string skillReleaseAnim = "Release";
 
@@ -105,10 +101,9 @@ namespace StarterAssets
         private const float _threshold = 0.01f;
         private bool _hasAnimator = true;
 
-        public bool isCrouching = false;
-        public bool isInLadderZone = false;
-
+        [Header("Main Trigger")]
         public bool isDead = false;
+        public bool canMove = true;
 
         private void Awake()
         {
@@ -237,88 +232,83 @@ namespace StarterAssets
 
         private void Move()
         {
-            if(isInLadderZone)
+            float targetSpeed = 0f;
+
+            if (canMove)
             {
-                //爬樓梯的邏輯
+                targetSpeed = isCrouching ? CrouchSpeed : (_input.sprint ? SprintSpeed : MoveSpeed);
+                if (_input.move == Vector2.zero) targetSpeed = 0.0f;
+            }
+
+            float currentHorizontalSpeed = new Vector3(_controller.velocity.x, 0.0f, _controller.velocity.z).magnitude;
+            float speedOffset = 0.1f;
+            float inputMagnitude = _input.analogMovement ? _input.move.magnitude : 1f;
+
+            if (currentHorizontalSpeed < targetSpeed - speedOffset || currentHorizontalSpeed > targetSpeed + speedOffset)
+            {
+                _speed = Mathf.Lerp(currentHorizontalSpeed, targetSpeed * inputMagnitude, Time.deltaTime * SpeedChangeRate);
+                _speed = Mathf.Round(_speed * 1000f) / 1000f;
             }
             else
             {
-                float targetSpeed = isCrouching ? CrouchSpeed : (_input.sprint ? SprintSpeed : MoveSpeed);
-                if (_input.move == Vector2.zero) targetSpeed = 0.0f;
+                _speed = targetSpeed;
+            }
 
-                float currentHorizontalSpeed = new Vector3(_controller.velocity.x, 0.0f, _controller.velocity.z).magnitude;
-                float speedOffset = 0.1f;
-                float inputMagnitude = _input.analogMovement ? _input.move.magnitude : 1f;
+            _animationBlend = Mathf.Lerp(_animationBlend, targetSpeed, Time.deltaTime * SpeedChangeRate);
+            if (_animationBlend < 0.01f) _animationBlend = 0f;
 
-                if (currentHorizontalSpeed < targetSpeed - speedOffset || currentHorizontalSpeed > targetSpeed + speedOffset)
-                {
-                    _speed = Mathf.Lerp(currentHorizontalSpeed, targetSpeed * inputMagnitude, Time.deltaTime * SpeedChangeRate);
-                    _speed = Mathf.Round(_speed * 1000f) / 1000f;
-                }
-                else
-                {
-                    _speed = targetSpeed;
-                }
+            Vector3 inputDirection = new Vector3(_input.move.x, 0.0f, _input.move.y).normalized;
 
-                _animationBlend = Mathf.Lerp(_animationBlend, targetSpeed, Time.deltaTime * SpeedChangeRate);
-                if (_animationBlend < 0.01f) _animationBlend = 0f;
+            if (canMove && _input.move != Vector2.zero)
+            {
+                _targetRotation = Mathf.Atan2(inputDirection.x, inputDirection.z) * Mathf.Rad2Deg + _mainCamera.transform.eulerAngles.y;
+                float rotation = Mathf.SmoothDampAngle(transform.eulerAngles.y, _targetRotation, ref _rotationVelocity, RotationSmoothTime);
+                transform.rotation = Quaternion.Euler(0.0f, rotation, 0.0f);
+            }
 
-                Vector3 inputDirection = new Vector3(_input.move.x, 0.0f, _input.move.y).normalized;
+            Vector3 targetDirection = canMove
+                ? Quaternion.Euler(0.0f, _targetRotation, 0.0f) * Vector3.forward
+                : Vector3.zero;
 
-                if (_input.move != Vector2.zero)
-                {
-                    _targetRotation = Mathf.Atan2(inputDirection.x, inputDirection.z) * Mathf.Rad2Deg + _mainCamera.transform.eulerAngles.y;
-                    float rotation = Mathf.SmoothDampAngle(transform.eulerAngles.y, _targetRotation, ref _rotationVelocity, RotationSmoothTime);
-                    transform.rotation = Quaternion.Euler(0.0f, rotation, 0.0f);
-                }
+            // 无论能否移动，都要执行 CharacterController.Move()，保证重力生效
+            _controller.Move(targetDirection.normalized * (_speed * Time.deltaTime) + new Vector3(0.0f, _verticalVelocity, 0.0f) * Time.deltaTime);
 
-                Vector3 targetDirection = Quaternion.Euler(0.0f, _targetRotation, 0.0f) * Vector3.forward;
-                _controller.Move(targetDirection.normalized * (_speed * Time.deltaTime) + new Vector3(0.0f, _verticalVelocity, 0.0f) * Time.deltaTime);
-
-                if (_hasAnimator)
-                {
-                    _animator.SetFloat(_animIDSpeed, _animationBlend);
-                    _animator.SetFloat(_animIDMotionSpeed, inputMagnitude);
-
-                    _animator.SetBool(_animIDCrouchWalk, isCrouching && _input.move.magnitude > 0);
-                }
-            }       
+            if (_hasAnimator)
+            {
+                _animator.SetFloat(_animIDSpeed, _animationBlend);
+                _animator.SetFloat(_animIDMotionSpeed, inputMagnitude);
+                _animator.SetBool(_animIDCrouchWalk, isCrouching && _input.move.magnitude > 0);
+            }
         }
+
 
         private void JumpAndGravity()
         {
             if (Grounded)
             {
-                // reset the fall timeout timer
                 _fallTimeoutDelta = FallTimeout;
 
-                // update animator if using character
                 if (_hasAnimator)
                 {
                     _animator.SetBool(_animIDJump, false);
                     _animator.SetBool(_animIDFreeFall, false);
                 }
 
-                // stop our velocity dropping infinitely when grounded
                 if (_verticalVelocity < 0.0f)
                 {
                     _verticalVelocity = -2f;
                 }
 
-                // Jump
-                if (_input.jump && _jumpTimeoutDelta <= 0.0f)
+                // 只在 canMove 时允许跳跃
+                if (canMove && _input.jump && _jumpTimeoutDelta <= 0.0f)
                 {
-                    // the square root of H * -2 * G = how much velocity needed to reach desired height
                     _verticalVelocity = Mathf.Sqrt(JumpHeight * -2f * Gravity);
-
-                    // update animator if using character
                     if (_hasAnimator)
                     {
                         _animator.SetBool(_animIDJump, true);
                     }
                 }
 
-                // jump timeout
                 if (_jumpTimeoutDelta >= 0.0f)
                 {
                     _jumpTimeoutDelta -= Time.deltaTime;
@@ -326,33 +316,30 @@ namespace StarterAssets
             }
             else
             {
-                // reset the jump timeout timer
                 _jumpTimeoutDelta = JumpTimeout;
 
-                // fall timeout
                 if (_fallTimeoutDelta >= 0.0f)
                 {
                     _fallTimeoutDelta -= Time.deltaTime;
                 }
                 else
                 {
-                    // update animator if using character
                     if (_hasAnimator)
                     {
                         _animator.SetBool(_animIDFreeFall, true);
                     }
                 }
 
-                // if we are not grounded, do not jump
                 _input.jump = false;
             }
 
-            // apply gravity over time if under terminal (multiply by delta time twice to linearly speed up over time)
+            // 重力始终生效（不受 canMove 影响）
             if (_verticalVelocity < _terminalVelocity)
             {
                 _verticalVelocity += Gravity * Time.deltaTime;
             }
         }
+
 
         // 在 HandleCrouchToggle 中仅触发动画
         private void HandleCrouchToggle()
@@ -467,10 +454,6 @@ namespace StarterAssets
             _animator.speed = 1f;
             _input.EnableMovement();
         }
-
-
-
-
 
         private static float ClampAngle(float angle, float min, float max)
         {

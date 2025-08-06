@@ -75,6 +75,9 @@ public class EnemyAmbushAI : MonoBehaviour
     public Transform patrolAreaCenter; // 巡逻区域中心点
     public float patrolAreaRadius = 5f; // 巡逻区域半径
     public float ambushDelay = 2f; // 触发后等待秒数
+    private Vector3 ambushStartPosition;
+    private Quaternion ambushStartRotation;
+    public GameObject ambushTriggerBox;
 
 
     void Start()
@@ -82,8 +85,8 @@ public class EnemyAmbushAI : MonoBehaviour
         agent = GetComponent<NavMeshAgent>();
         agent.acceleration = 10f;
         agent.angularSpeed = 360f;
-        startPosition = transform.position;
-        startRotation = transform.rotation;
+        startPosition = transform.localPosition;
+        startRotation = transform.localRotation;
         enemyAnimator.applyRootMotion = false;
 
         if (enemyType == EnemyType.Ambush)
@@ -93,6 +96,10 @@ public class EnemyAmbushAI : MonoBehaviour
             enemyAnimator.SetBool("isWalking", false);
             enemyAnimator.SetBool("isRunning", false);
             enemyAnimator.ResetTrigger("Idle");
+
+            ambushStartPosition = transform.localPosition;
+            Debug.Log("记录坐标" + transform.localPosition + ambushStartPosition);
+            ambushStartRotation = transform.localRotation;
             return;
         }
 
@@ -114,9 +121,17 @@ public class EnemyAmbushAI : MonoBehaviour
 
     void Update()
     {
+       
+        if (enemyType == EnemyType.Ambush && Controller.isDead && state != 0)
+        {
+            StartCoroutine(ResetAmbushAfterDelay(2f));
+            isAmbushActive = false;
+            return;
+        }
         if (isDead || isInBlackScreen) return;
 
         float distanceToPlayer = Vector3.Distance(transform.position, player.position);
+
 
         switch (state)
         {
@@ -168,7 +183,7 @@ public class EnemyAmbushAI : MonoBehaviour
 
     void Patrol()
     {
-        agent.speed = isInSlowZone ? slowPatrolSpeed : patrolSpeed;
+        /*agent.speed = isInSlowZone ? slowPatrolSpeed : patrolSpeed;
 
         if (!agent.pathPending && agent.remainingDistance < 0.2f)
         {
@@ -178,7 +193,7 @@ public class EnemyAmbushAI : MonoBehaviour
 
         enemyAnimator.SetBool("isWalking", true);
         enemyAnimator.SetBool("isRunning", false);
-        enemyAnimator.ResetTrigger("Idle");
+        enemyAnimator.ResetTrigger("Idle");*/
     }
 
     void ChasePlayer(float distance)
@@ -203,6 +218,7 @@ public class EnemyAmbushAI : MonoBehaviour
                 playerAnimator.applyRootMotion = true;
                 Controller.isDead = true;
                 playerAnimator.SetTrigger("Caught");
+                Controller.canMove = false;
                 playerAnimator.speed = 1;
             }
 
@@ -306,6 +322,7 @@ public class EnemyAmbushAI : MonoBehaviour
         playerModel.localRotation = Quaternion.identity;
         playerAnimator.SetBool("IsCrouching", false);
 
+
         var zones = FindObjectsOfType<ForceDetectionZone>();
         foreach (var zone in zones) zone.ResetTrigger();
 
@@ -329,6 +346,7 @@ public class EnemyAmbushAI : MonoBehaviour
         }
 
         t = 0f;
+        Controller.canMove = true;
         while (t < blackFadeDuration)
         {
             t += Time.deltaTime;
@@ -339,6 +357,16 @@ public class EnemyAmbushAI : MonoBehaviour
 
         Controller.isDead = false;
         isInBlackScreen = false;
+        Controller.canMove = true;
+
+        if (ambushTriggerBox != null)
+        {
+            ambushTriggerBox.SetActive(true);
+        }
+
+
+
+
     }
 
     int GetClosestPatrolPointIndex()
@@ -459,6 +487,46 @@ public class EnemyAmbushAI : MonoBehaviour
         enemyAnimator.SetBool("isRunning", true);
     }
 
+    private bool isResettingAmbush = false;
+
+    IEnumerator ResetAmbushAfterDelay(float delay)
+    {
+        if (isResettingAmbush) yield break; // 防止重复执行
+        isResettingAmbush = true;
+
+        agent.isStopped = true;
+        yield return new WaitForSeconds(delay);
+
+        Debug.Log("Ambush重新设置");
+        // 回到埋伏点
+        //agent.Warp(ambushStartPosition);
+        //transform.rotation = ambushStartRotation;
+        transform.localPosition = ambushStartPosition;
+        Debug.Log("重置坐标" + transform.localPosition + ambushStartPosition);
+        transform.localRotation = ambushStartRotation;
+
+
+        // 停止动画，回到埋伏Idle状态
+        enemyAnimator.SetBool("isWalking", false);
+        enemyAnimator.SetBool("isRunning", false);
+        //enemyAnimator.ResetTrigger("Ambush");
+        //enemyAnimator.Play("BelowTheGround", 0, 0f); // 直接播放Idle动画（根据你的动画名称调整）
+        enemyAnimator.SetTrigger("CanAmbush");
+
+       
+
+
+        // 重新禁用NavMeshAgent
+        agent.enabled = false;
+
+        // 重新允许激活wake trigger
+        isAmbushActive = false;
+
+        // 回到待机状态
+        state = 0;
+
+        isResettingAmbush = false;
+    }
 
 
 
