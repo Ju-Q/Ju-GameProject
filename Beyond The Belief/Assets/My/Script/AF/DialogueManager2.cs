@@ -1,20 +1,17 @@
-using System.Collections;
+ï»¿using System.Collections;
 using UnityEngine;
 using StarterAssets;
 
 public class DialogueManager2 : MonoBehaviour
 {
-    public GameObject ShowCanvas; // ÓÃÓÚÏÔÊ¾¶Ô»°µÄ Canvas
+    public GameObject ShowCanvas; // ç”¨äºæ˜¾ç¤ºå¯¹è¯çš„ Canvas
     private bool isCanvasActive = false;
-    private bool isWaitingForInput = false;
-    private bool hasDialogueBeenShown = false; // ¼ÇÂ¼¶Ô»°ÊÇ·ñÒÑ¾­ÏÔÊ¾¹ı
+    private bool hasDialogueBeenShown = false; // è®°å½•å¯¹è¯æ˜¯å¦å·²ç»æ˜¾ç¤ºè¿‡
     public float showCanvasTime = 5f;
-    //private ThirdPersonController Controller;
 
     private void Start()
     {
         ShowCanvas.SetActive(false);
-       // Controller = GameObject.FindGameObjectWithTag("Player").GetComponent<ThirdPersonController>();
     }
 
     private void OnTriggerEnter(Collider other)
@@ -25,53 +22,34 @@ public class DialogueManager2 : MonoBehaviour
         }
     }
 
-    private void OnTriggerExit(Collider other)
-    {
-        if (other.CompareTag("Player") && isCanvasActive)
-        {
-            StopAllCoroutines(); // È·±£ÔÚÀë¿ªÇøÓòÊ±Í£Ö¹ÈÎºÎ½øĞĞÖĞµÄ¶Ô»°ÏÔÊ¾
-            StartCoroutine(FadeOutCanvas());
-        }
-    }
+    // âŒ åˆ é™¤ç«‹å³å…³é—­é€»è¾‘
+    // private void OnTriggerExit(Collider other) { ... }
 
     private IEnumerator ShowDialogue()
     {
-        hasDialogueBeenShown = true; // ±ê¼Ç¶Ô»°ÒÑ¾­ÏÔÊ¾¹ı
+        hasDialogueBeenShown = true;
         isCanvasActive = true;
         ShowCanvas.SetActive(true);
-        //Controller.canMove = false;
 
-        // µ÷ÓÃµ­ÈëĞ§¹û
+        // è°ƒç”¨æ·¡å…¥æ•ˆæœ
         yield return StartCoroutine(FadeInCanvas());
 
-        isWaitingForInput = false;
+        // ç­‰å¾…æŒ‡å®šç§’æ•°åå…³é—­
+        yield return new WaitForSeconds(showCanvasTime);
 
-        // ¼ÙÉèÏÔÊ¾¶Ô»°µÄÂß¼­£¨ÕâÀïÖ»ÏÔÊ¾ÌáÊ¾ÎÄ×Ö»òÆäËû UI ÔªËØ£©
-        yield return new WaitForSeconds(showCanvasTime); // ¼ÙÉè¶Ô»°Í£Áô 5 Ãë
-
-        isWaitingForInput = true;
-
-        while (isWaitingForInput)
-        {
-            if (Input.GetKeyDown(KeyCode.Return)) // ¼ì²â»Ø³µ¼ü
-            {
-                StartCoroutine(FadeOutCanvas());
-                yield break;
-            }
-            yield return null; // µÈ´ıÏÂÒ»Ö¡
-        }
+        yield return StartCoroutine(FadeOutCanvas());
     }
 
     private IEnumerator FadeInCanvas()
     {
-        float fadeDuration = 0.1f; // ½¥±äÊ±¼ä
+        float fadeDuration = 0.1f;
         float elapsedTime = 0f;
         CanvasGroup canvasGroup = ShowCanvas.GetComponent<CanvasGroup>();
 
         if (canvasGroup == null)
         {
-            canvasGroup = ShowCanvas.AddComponent<CanvasGroup>(); // Èç¹ûÃ»ÓĞ CanvasGroup ×é¼ş£¬Ìí¼ÓÒ»¸ö
-            canvasGroup.alpha = 0f; // ³õÊ¼»¯ÎªÍêÈ«Í¸Ã÷
+            canvasGroup = ShowCanvas.AddComponent<CanvasGroup>();
+            canvasGroup.alpha = 0f;
         }
 
         while (elapsedTime < fadeDuration)
@@ -81,18 +59,18 @@ public class DialogueManager2 : MonoBehaviour
             yield return null;
         }
 
-        canvasGroup.alpha = 1f; // È·±£×îºóµÄÍ¸Ã÷¶ÈÉèÖÃÎªÍêÈ«²»Í¸Ã÷
+        canvasGroup.alpha = 1f;
     }
 
     private IEnumerator FadeOutCanvas()
     {
-        float fadeDuration = 0.1f; // ½¥±äÊ±¼ä
+        float fadeDuration = 0.1f;
         float elapsedTime = 0f;
         CanvasGroup canvasGroup = ShowCanvas.GetComponent<CanvasGroup>();
 
         if (canvasGroup == null)
         {
-            canvasGroup = ShowCanvas.AddComponent<CanvasGroup>(); // Èç¹ûÃ»ÓĞ CanvasGroup ×é¼ş£¬Ìí¼ÓÒ»¸ö
+            canvasGroup = ShowCanvas.AddComponent<CanvasGroup>();
         }
 
         while (elapsedTime < fadeDuration)
@@ -105,6 +83,5 @@ public class DialogueManager2 : MonoBehaviour
         canvasGroup.alpha = 0f;
         ShowCanvas.SetActive(false);
         isCanvasActive = false;
-        //Controller.canMove = true;
     }
 }

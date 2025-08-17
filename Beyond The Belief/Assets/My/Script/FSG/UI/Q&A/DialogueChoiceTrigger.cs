@@ -1,4 +1,4 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 using UnityEngine.UI;
 using System.Collections;
 
@@ -16,15 +16,15 @@ public class DialogueChoiceTrigger : MonoBehaviour
     public Color disabledColor = Color.gray;
 
     [Header("Grid Settings")]
-    public int columns = 2; // ÁĞÊı
+    public int columns = 2; // åˆ—æ•°
 
     [Header("Dialogue Settings")]
     public GameObject[] dialogueCanvases;
     private bool[] optionUsed;
 
     [Header("Prompt UI Settings")]
-    public CanvasGroup promptUI;   // ÌáÊ¾UI£¨World Space Canvas£©
-    public float fadeDuration = 0.3f; // µ­Èëµ­³öÊ±¼ä
+    public CanvasGroup promptUI;   // æç¤ºUIï¼ˆWorld Space Canvasï¼‰
+    public float fadeDuration = 0.3f; // æ·¡å…¥æ·¡å‡ºæ—¶é—´
 
     private int currentIndex = 0;
     private bool isChoosing = false;
@@ -44,14 +44,14 @@ public class DialogueChoiceTrigger : MonoBehaviour
 
     private void Update()
     {
-        // °´F´ò¿ªÑ¡Ïî
+        // æŒ‰Fæ‰“å¼€é€‰é¡¹
         if (isPlayerInside && !isChoosing && Input.GetKeyDown(KeyCode.F))
         {
             isChoosing = true;
             choicePanel.SetActive(true);
             UpdateOptionHighlight();
 
-            // Òş²ØÌáÊ¾UI
+            // éšè—æç¤ºUI
             HidePrompt();
         }
 
@@ -59,7 +59,7 @@ public class DialogueChoiceTrigger : MonoBehaviour
         {
             HandleNavigation();
 
-            // Ñ¡Ôñ
+            // é€‰æ‹©
             if (Input.GetKeyDown(KeyCode.Return))
             {
                 if (!optionUsed[currentIndex])
@@ -68,7 +68,7 @@ public class DialogueChoiceTrigger : MonoBehaviour
                 }
             }
 
-            // ÍË³ö
+            // é€€å‡º
             if (Input.GetKeyDown(KeyCode.Escape))
             {
                 isChoosing = false;
@@ -160,6 +160,11 @@ public class DialogueChoiceTrigger : MonoBehaviour
         {
             isPlayerInside = false;
             HidePrompt();
+            if (isChoosing || choicePanel.activeSelf)
+            {
+                isChoosing = false;
+                choicePanel.SetActive(false);
+            }
         }
     }
 

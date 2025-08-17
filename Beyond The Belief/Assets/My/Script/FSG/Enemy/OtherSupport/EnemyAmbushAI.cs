@@ -79,6 +79,16 @@ public class EnemyAmbushAI : MonoBehaviour
     private Quaternion ambushStartRotation;
     public GameObject ambushTriggerBox;
 
+    [Header("音效设置")]
+    public AudioSource audioSource;      // 用于播放声音
+    public AudioClip[] enemySounds;      // 敌人叫声集合
+    public float minSoundInterval = 3f;  // 最短间隔
+    public float maxSoundInterval = 7f;  // 最长间隔
+    private float soundTimer = 0f;       // 计时器
+    private float nextSoundDelay = 0f;   // 下一次播放延迟
+    public AudioClip attackSound;          // 抓到玩家时播放的音效
+    public float attackVolume = 1f;    // 默认音量
+
 
     void Start()
     {
@@ -117,6 +127,8 @@ public class EnemyAmbushAI : MonoBehaviour
             enemyAnimator.SetBool("isRunning", false);
             enemyAnimator.SetTrigger("Idle");
         }
+        nextSoundDelay = Random.Range(minSoundInterval, maxSoundInterval);
+
     }
 
     void Update()
@@ -129,6 +141,8 @@ public class EnemyAmbushAI : MonoBehaviour
             return;
         }
         if (isDead || isInBlackScreen) return;
+
+        PlayRandomSoundIfNeeded();
 
         float distanceToPlayer = Vector3.Distance(transform.position, player.position);
 
@@ -207,6 +221,13 @@ public class EnemyAmbushAI : MonoBehaviour
             Controller.isDead = true;
 
             if (catchEffect != null) catchEffect.SetActive(false);
+
+            // 播放攻击音效
+            if (audioSource != null && attackSound != null)
+            {
+                audioSource.PlayOneShot(attackSound, attackVolume);
+            }
+
 
             state = 2;
             agent.isStopped = true;
@@ -528,6 +549,25 @@ public class EnemyAmbushAI : MonoBehaviour
         isResettingAmbush = false;
     }
 
+    void PlayRandomSoundIfNeeded()
+    {
+        // 只在巡逻或追击时才发声
+        if (state != 0 && state != 1) return;
+        if (enemySounds == null || enemySounds.Length == 0 || audioSource == null) return;
 
+        soundTimer += Time.deltaTime;
+
+        if (soundTimer >= nextSoundDelay)
+        {
+            // 随机选一个音效
+            int index = Random.Range(0, enemySounds.Length);
+            audioSource.PlayOneShot(enemySounds[index]);
+
+            // 重置计时器 & 随机下次延迟
+            soundTimer = 0f;
+            nextSoundDelay = Random.Range(minSoundInterval, maxSoundInterval);
+        }
+
+    }
 
 }

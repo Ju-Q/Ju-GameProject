@@ -74,7 +74,7 @@ public class SkillManager : MonoBehaviour
 
                     if (preChargeTimer >= preChargeDelay)
                     {
-                        Debug.Log("开始蓄力");
+                        //Debug.Log("开始蓄力");
 
                         isPreCharging = false;
                         isCharging = true;

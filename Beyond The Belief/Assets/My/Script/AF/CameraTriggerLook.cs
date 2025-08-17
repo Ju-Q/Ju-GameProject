@@ -1,75 +1,96 @@
 using UnityEngine;
 using System.Collections;
+using StarterAssets;
 
 public class CameraTriggerLook : MonoBehaviour
 {
-    public Transform npc;              // The transform of the NPC
-    public Camera mainCamera;          // Reference to the main camera
-    public float lookDuration = 2.0f;  // Time to look at the NPC
-    public float cameraSpeed = 2.0f;   // Speed of camera movement
-    public Vector3 offsetFromNPC = new Vector3(0, 2, -5);  // Offset position when looking at NPC
+    public Transform npc;
+    public Camera mainCamera;
+    public float lookDuration = 2.0f;
+    public float moveTime = 1.0f; // 摄像头移动到目标位置的总时间
+    public Vector3 offsetFromNPC = new Vector3(0, 2, -5);
 
-    private bool hasTriggered = false;  // Prevents the trigger from being used more than once
-    private Vector3 savedLocalPosition; // Camera's local position relative to the player
-    private Quaternion savedLocalRotation; // Camera's local rotation relative to the player
-    private Transform cameraParent;    // Original parent of the camera
+    [Header("Camera Move Curve")]
+    public AnimationCurve moveCurve = AnimationCurve.EaseInOut(0, 0, 1, 1); // 默认缓入缓出
+
+    private bool hasTriggered = false;
+    private Vector3 savedLocalPosition;
+    private Quaternion savedLocalRotation;
+    private Transform cameraParent;
+    private ThirdPersonController playerController; // 引用玩家控制脚本
 
     void Start()
     {
-        // Save the original parent of the camera
         cameraParent = mainCamera.transform.parent;
+
+        // 找到玩家控制器（假设摄像机的父物体就是玩家）
+        playerController = cameraParent.GetComponent<ThirdPersonController>();
+        if (playerController == null)
+        {
+            Debug.LogWarning("未找到 ThirdPersonController，请手动指定或检查父物体。");
+        }
     }
 
     void OnTriggerEnter(Collider other)
     {
         if (!hasTriggered && other.CompareTag("Player"))
         {
-            // Save the camera's local position and rotation relative to its parent (the player)
             savedLocalPosition = mainCamera.transform.localPosition;
             savedLocalRotation = mainCamera.transform.localRotation;
 
-            hasTriggered = true; // Mark the trigger as used
+            hasTriggered = true;
             StartCoroutine(LookAtNPC());
         }
     }
 
     IEnumerator LookAtNPC()
     {
-        // Step 1: Detach the camera from the player to freely control its transform
+        // 禁用玩家移动
+        if (playerController != null)
+            playerController.canMove = false;
+
         mainCamera.transform.SetParent(null);
 
-        Vector3 targetPosition = npc.position + offsetFromNPC; // Calculate the target position
+        Vector3 targetPosition = npc.position + offsetFromNPC;
         Quaternion targetRotation = Quaternion.LookRotation(npc.position - targetPosition);
 
-        // Smoothly move the camera to the target position and rotation
-        while (Vector3.Distance(mainCamera.transform.position, targetPosition) > 0.1f ||
-               Quaternion.Angle(mainCamera.transform.rotation, targetRotation) > 0.1f)
-        {
-            mainCamera.transform.position = Vector3.Lerp(mainCamera.transform.position, targetPosition, Time.deltaTime * cameraSpeed);
-            mainCamera.transform.rotation = Quaternion.Slerp(mainCamera.transform.rotation, targetRotation, Time.deltaTime * cameraSpeed);
-            yield return null;
-        }
+        // --- Step 1: 移动到 NPC ---
+        yield return StartCoroutine(MoveCamera(mainCamera.transform.position, targetPosition,
+                                               mainCamera.transform.rotation, targetRotation));
 
-        // Step 2: Wait for a specified number of seconds
         yield return new WaitForSeconds(lookDuration);
 
-        // Step 3: Smoothly return the camera to its saved local position and rotation relative to the player
-        Vector3 targetReturnPosition = cameraParent.TransformPoint(savedLocalPosition); // Convert local to world position
-        Quaternion targetReturnRotation = cameraParent.rotation * savedLocalRotation;  // Convert local to world rotation
+        // --- Step 2: 返回玩家 ---
+        Vector3 targetReturnPosition = cameraParent.TransformPoint(savedLocalPosition);
+        Quaternion targetReturnRotation = cameraParent.rotation * savedLocalRotation;
 
-        while (Vector3.Distance(mainCamera.transform.position, targetReturnPosition) > 0.1f ||
-               Quaternion.Angle(mainCamera.transform.rotation, targetReturnRotation) > 0.1f)
-        {
-            mainCamera.transform.position = Vector3.Lerp(mainCamera.transform.position, targetReturnPosition, Time.deltaTime * cameraSpeed);
-            mainCamera.transform.rotation = Quaternion.Slerp(mainCamera.transform.rotation, targetReturnRotation, Time.deltaTime * cameraSpeed);
-            yield return null;
-        }
+        yield return StartCoroutine(MoveCamera(mainCamera.transform.position, targetReturnPosition,
+                                               mainCamera.transform.rotation, targetReturnRotation));
 
-        // Step 4: Reparent the camera back to the player
         mainCamera.transform.SetParent(cameraParent);
-
-        // Ensure the camera retains its original local position and rotation relative to the player
         mainCamera.transform.localPosition = savedLocalPosition;
         mainCamera.transform.localRotation = savedLocalRotation;
+
+        // 允许玩家移动
+        if (playerController != null)
+            playerController.canMove = true;
+    }
+
+    IEnumerator MoveCamera(Vector3 startPos, Vector3 endPos, Quaternion startRot, Quaternion endRot)
+    {
+        float elapsed = 0f;
+
+        while (elapsed < moveTime)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsed / moveTime);
+
+            float curveT = moveCurve.Evaluate(t);
+
+            mainCamera.transform.position = Vector3.Lerp(startPos, endPos, curveT);
+            mainCamera.transform.rotation = Quaternion.Slerp(startRot, endRot, curveT);
+
+            yield return null;
+        }
     }
 }

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
 using UnityEngine.UI;
-using System; // 添加以支持 Action
+using System;
 using StarterAssets;
 
 public class DialogueManager1 : MonoBehaviour
@@ -14,6 +14,17 @@ public class DialogueManager1 : MonoBehaviour
     public List<Sprite> characterPortraits;
     public Image backgroundImage;
     public Sprite backgroundSprite;
+
+    [Header("延迟设置")]
+    public float startDelay = 0f;
+
+    [Header("音效设置")]
+    public AudioSource audioSource; // 播放音效的 AudioSource
+    public AudioClip nextDialogueClip; // 开启对话 / 下一句话
+    [Range(0f, 1f)] public float nextDialogueVolume = 1f; // 新增：下一句音量
+
+    public AudioClip typingClip; // 打字音效
+    [Range(0f, 1f)] public float typingVolume = 1f; // 新增：打字音量
 
     private int currentDialogueIndex = 0;
     private Coroutine typingCoroutine;
@@ -34,14 +45,21 @@ public class DialogueManager1 : MonoBehaviour
         {
             backgroundImage.enabled = false;
             characterPortrait.enabled = false;
-            UpdateDialogueUI();
             Controller.canMove = false;
+            StartCoroutine(StartDialogueWithDelay(startDelay));
         }
         else
         {
             Debug.LogWarning("没有可用的对话内容.");
             isDialogueActive = false;
         }
+    }
+
+    IEnumerator StartDialogueWithDelay(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        PlayNextDialogueSound(); // 延迟结束后播放开启对话音效
+        UpdateDialogueUI();
     }
 
     void Update()
@@ -68,7 +86,7 @@ public class DialogueManager1 : MonoBehaviour
 
         if (isTyping)
         {
-            StopTypingEffect();
+            StopTypingEffect(); // 跳过打字
             return;
         }
 
@@ -87,6 +105,7 @@ public class DialogueManager1 : MonoBehaviour
         isDialogueActive = false;
         yield return new WaitForSeconds(delay);
         currentDialogueIndex++;
+        PlayNextDialogueSound(); // 播放下一句音效
         isDialogueActive = true;
         UpdateDialogueUI();
     }
@@ -129,6 +148,13 @@ public class DialogueManager1 : MonoBehaviour
         foreach (char letter in text.ToCharArray())
         {
             dialogueText.text += letter;
+
+            // 播放打字音效（不暂停，让声音自然重叠）
+            if (typingClip != null && audioSource != null)
+            {
+                audioSource.PlayOneShot(typingClip, typingVolume); // 使用独立音量
+            }
+
             yield return new WaitForSeconds(0.05f);
         }
 
@@ -143,6 +169,7 @@ public class DialogueManager1 : MonoBehaviour
             typingCoroutine = null;
         }
 
+        // 直接显示完整对话 → 不播放打字音效
         dialogueText.text = dialogues[currentDialogueIndex];
         isTyping = false;
     }
@@ -154,9 +181,16 @@ public class DialogueManager1 : MonoBehaviour
         characterPortrait.enabled = false;
         isDialogueActive = false;
 
-        //Debug.Log("对话序列结束.");
         Controller.canMove = true;
-        // 触发事件通知外部
         OnDialogueEnd?.Invoke();
+    }
+
+    // 播放开启对话 / 下一句的音效
+    void PlayNextDialogueSound()
+    {
+        if (nextDialogueClip != null && audioSource != null)
+        {
+            audioSource.PlayOneShot(nextDialogueClip, nextDialogueVolume); // 使用独立音量
+        }
     }
 }

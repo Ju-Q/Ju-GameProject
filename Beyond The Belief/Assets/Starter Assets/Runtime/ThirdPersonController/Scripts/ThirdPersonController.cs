@@ -180,6 +180,7 @@ namespace StarterAssets
                 // 过渡完成
                 if (progress >= 1f)
                 {
+                    canMove = true;
                     _isSmoothingReset = false;
                     _animator.applyRootMotion = false; // 完全归零后关闭 Root Motion
                 }
@@ -300,7 +301,7 @@ namespace StarterAssets
                 }
 
                 // 只在 canMove 时允许跳跃
-                if (canMove && _input.jump && _jumpTimeoutDelta <= 0.0f)
+                if (canMove && _input.jump && _jumpTimeoutDelta <= 0.0f && !isCrouching)
                 {
                     _verticalVelocity = Mathf.Sqrt(JumpHeight * -2f * Gravity);
                     if (_hasAnimator)
@@ -360,10 +361,11 @@ namespace StarterAssets
                     else
                     {
                         // 起立逻辑：启动计时器
-                        _animator.applyRootMotion = true; // 允许 Root Motion 影响位移
+                        //_animator.applyRootMotion = true; // 允许 Root Motion 影响位移
                         _animator.SetTrigger(_animIDCrouchToStand);
                         _isStandingUp = true;
                         _standUpTimer = standUpAnimationTime; // 设置倒计时
+                        canMove = false;
                     }
                     _animator.SetBool(_animIDCrouch, isCrouching);
                 }
