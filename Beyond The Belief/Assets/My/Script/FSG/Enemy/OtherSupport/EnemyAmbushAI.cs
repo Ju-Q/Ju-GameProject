@@ -108,7 +108,7 @@ public class EnemyAmbushAI : MonoBehaviour
             enemyAnimator.ResetTrigger("Idle");
 
             ambushStartPosition = transform.localPosition;
-            Debug.Log("记录坐标" + transform.localPosition + ambushStartPosition);
+            //Debug.Log("记录坐标" + transform.localPosition + ambushStartPosition);
             ambushStartRotation = transform.localRotation;
             return;
         }

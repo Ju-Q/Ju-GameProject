@@ -1,23 +1,27 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 
 public class OpenGate : MonoBehaviour
 {
-    [Header("ÉèÖÃÒª¿ØÖÆµÄAnimator")]
+    [Header("è®¾ç½®è¦æ§åˆ¶çš„Animator")]
     public Animator targetAnimator;
 
-    [Header("Trigger²ÎÊıÃû")]
+    [Header("Triggerå‚æ•°å")]
     public string triggerParameterName = "Open";
 
-    [Header("°´¼üÌáÊ¾UI£¨Canvas£©")]
+    [Header("å…è®¸æ‰£ç‚¹çš„çŠ¶æ€åç§°ä»¬")]
+    public string[] allowedStates; // å¯åœ¨ Inspector é‡Œå¡«å¤šä¸ªçŠ¶æ€å
+
+    [Header("æŒ‰é”®æç¤ºUIï¼ˆCanvasï¼‰")]
     public GameObject promptCanvas;
 
     private bool isPlayerInTrigger = false;
+    private bool hasConsumedSkillPoint = false; // æ ‡è®°æ˜¯å¦å·²ç»æ¶ˆè€—è¿‡
 
     void Start()
     {
         if (promptCanvas != null)
         {
-            promptCanvas.SetActive(false); // ³õÊ¼Òş²ØÌáÊ¾
+            promptCanvas.SetActive(false); // åˆå§‹éšè—æç¤º
         }
     }
 
@@ -27,20 +31,39 @@ public class OpenGate : MonoBehaviour
         {
             if (targetAnimator != null && !string.IsNullOrEmpty(triggerParameterName))
             {
-                // Èç¹ûÓĞ¼¼ÄÜµã²ÅÔÊĞí´¥·¢¶¯»­
-                if (SkillPointManager.Instance != null && SkillPointManager.Instance.currentSkillPoints > 0)
-                {
-                    targetAnimator.SetTrigger(triggerParameterName);
-                    SkillPointManager.Instance.UseSkillPoint(); // ÏûºÄÒ»¸ö¼¼ÄÜµã
-                    Debug.Log("´¥·¢Animator + ÏûºÄ¼¼ÄÜµã");
+                AnimatorStateInfo stateInfo = targetAnimator.GetCurrentAnimatorStateInfo(0);
 
-                    // ´¥·¢ºóÒş²ØÌáÊ¾
-                    if (promptCanvas != null)
-                        promptCanvas.SetActive(false);
+                // âœ… æ£€æŸ¥å½“å‰çŠ¶æ€æ˜¯å¦åœ¨ allowedStates é‡Œ
+                bool isInAllowedState = false;
+                foreach (string stateName in allowedStates)
+                {
+                    if (stateInfo.IsName(stateName))
+                    {
+                        isInAllowedState = true;
+                        break;
+                    }
+                }
+
+                if (isInAllowedState && !hasConsumedSkillPoint)
+                {
+                    if (SkillPointManager.Instance != null && SkillPointManager.Instance.currentSkillPoints > 0)
+                    {
+                        targetAnimator.SetTrigger(triggerParameterName);
+                        SkillPointManager.Instance.UseSkillPoint();
+                        hasConsumedSkillPoint = true; // âœ… æ ‡è®°å·²æ‰£
+                        Debug.Log("è§¦å‘Animator + æ¶ˆè€—æŠ€èƒ½ç‚¹");
+
+                        if (promptCanvas != null)
+                            promptCanvas.SetActive(false);
+                    }
+                    else
+                    {
+                        Debug.Log("æ²¡æœ‰æŠ€èƒ½ç‚¹ï¼Œæ— æ³•è§¦å‘åŠ¨ç”»");
+                    }
                 }
                 else
                 {
-                    Debug.Log("Ã»ÓĞ¼¼ÄÜµã£¬ÎŞ·¨´¥·¢¶¯»­");
+                    Debug.Log("å½“å‰çŠ¶æ€ä¸å…è®¸è§¦å‘ æˆ– å·²ç»æ¶ˆè€—è¿‡æŠ€èƒ½ç‚¹");
                 }
             }
         }
@@ -52,7 +75,6 @@ public class OpenGate : MonoBehaviour
         {
             isPlayerInTrigger = true;
 
-            // ½øÈë´¥·¢ÇøÓòÊ±ÏÔÊ¾ÌáÊ¾
             if (promptCanvas != null)
                 promptCanvas.SetActive(true);
         }
@@ -64,7 +86,6 @@ public class OpenGate : MonoBehaviour
         {
             isPlayerInTrigger = false;
 
-            // Àë¿ªÇøÓòÊ±Òş²ØÌáÊ¾
             if (promptCanvas != null)
                 promptCanvas.SetActive(false);
         }

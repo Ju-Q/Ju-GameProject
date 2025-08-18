@@ -13,20 +13,19 @@ public class PropBPickup : MonoBehaviour
         // 在场景中查找 SkillPointManager 的实例并赋值给 skillPointManager
         skillPointManager = FindObjectOfType<SkillPointManager>();
         itemPickupManager = GameObject.FindGameObjectWithTag("Player").GetComponent<ItemPickupManager>();
-       
     }
 
     // 当玩家进入触发区域并按下 F 键时执行
     private void OnTriggerStay(Collider other)
     {
         // 检查碰撞对象是否是玩家（Tag 为 "Player"）并且是否按下 F 键
-        if (other.CompareTag("Player") && Input.GetKeyDown(KeyCode.F) && itemPickupManager.propACount>=1)
+        if (other.CompareTag("Player") && Input.GetKeyDown(KeyCode.F) && itemPickupManager.propACount >= 1)
         {
-            // 如果 skillPointManager 不为空，调用 AddSkillPoint() 方法增加技能点
+            // 增加技能点
             skillPointManager?.AddSkillPoint();
 
-            // 注释掉的代码：拾取后销毁道具（可以根据需求取消注释）
-             Destroy(gameObject);
+            // 只禁用该物体，不销毁
+            gameObject.SetActive(false);
         }
     }
 }

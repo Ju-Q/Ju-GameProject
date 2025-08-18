@@ -26,10 +26,13 @@ public class DialogueManager1 : MonoBehaviour
     public AudioClip typingClip; // 打字音效
     [Range(0f, 1f)] public float typingVolume = 1f; // 新增：打字音量
 
+    [Header("触发设置")]
+    public bool allowRepeat = false; // 是否允许重复触发对话（默认不允许）
+
     private int currentDialogueIndex = 0;
     private Coroutine typingCoroutine;
     private bool isTyping = false;
-    private bool isDialogueActive = true;
+    public bool isDialogueActive = false;
 
     private float inputCooldown = 0.3f;
     private bool inputLocked = false;
@@ -41,32 +44,22 @@ public class DialogueManager1 : MonoBehaviour
     void Start()
     {
         Controller = GameObject.FindGameObjectWithTag("Player").GetComponent<ThirdPersonController>();
-        if (dialogues.Count > 0)
+        if (dialogues.Count > 0 )
         {
-            backgroundImage.enabled = false;
-            characterPortrait.enabled = false;
-            Controller.canMove = false;
-            StartCoroutine(StartDialogueWithDelay(startDelay));
+            // 默认非重复模式时，场景开始自动触发一次
+            StartDialogueWithDelay(startDelay);
         }
         else
         {
-            Debug.LogWarning("没有可用的对话内容.");
             isDialogueActive = false;
         }
-    }
-
-    IEnumerator StartDialogueWithDelay(float delay)
-    {
-        yield return new WaitForSeconds(delay);
-        PlayNextDialogueSound(); // 延迟结束后播放开启对话音效
-        UpdateDialogueUI();
     }
 
     void Update()
     {
         if (!isDialogueActive) return;
 
-        if (Input.GetKeyDown(KeyCode.Return) && !inputLocked)
+        if ((Input.GetKeyDown(KeyCode.Return) || Input.GetMouseButtonDown(0)) && !inputLocked)
         {
             inputLocked = true;
             ShowNextDialogue();
@@ -149,10 +142,9 @@ public class DialogueManager1 : MonoBehaviour
         {
             dialogueText.text += letter;
 
-            // 播放打字音效（不暂停，让声音自然重叠）
             if (typingClip != null && audioSource != null)
             {
-                audioSource.PlayOneShot(typingClip, typingVolume); // 使用独立音量
+                audioSource.PlayOneShot(typingClip, typingVolume);
             }
 
             yield return new WaitForSeconds(0.05f);
@@ -169,7 +161,6 @@ public class DialogueManager1 : MonoBehaviour
             typingCoroutine = null;
         }
 
-        // 直接显示完整对话 → 不播放打字音效
         dialogueText.text = dialogues[currentDialogueIndex];
         isTyping = false;
     }
@@ -183,6 +174,13 @@ public class DialogueManager1 : MonoBehaviour
 
         Controller.canMove = true;
         OnDialogueEnd?.Invoke();
+
+        if (allowRepeat)
+        {
+            // 重置索引和状态，允许再次触发
+            currentDialogueIndex = 0;
+            //isDialogueActive = true;
+        }
     }
 
     // 播放开启对话 / 下一句的音效
@@ -190,7 +188,41 @@ public class DialogueManager1 : MonoBehaviour
     {
         if (nextDialogueClip != null && audioSource != null)
         {
-            audioSource.PlayOneShot(nextDialogueClip, nextDialogueVolume); // 使用独立音量
+            audioSource.PlayOneShot(nextDialogueClip, nextDialogueVolume);
         }
+    }
+
+    // 对外公共方法：可以从其他脚本触发对话
+    public void StartDialogueWithDelay(float delayTime = 0f)
+    {
+        if (dialogues.Count == 0) return;
+
+        if (!allowRepeat && isDialogueActive) return; // 如果不允许重复且正在对话，直接返回
+
+        currentDialogueIndex = 0;   // 重置索引
+        isDialogueActive = true;    // 激活对话
+        Controller.canMove = false;
+
+        UpdateDialogueUI();         // 刷新对话UI
+        PlayNextDialogueSound();    // 播放开启音效
+
+        if (delayTime > 0f)
+            StartCoroutine(DelayInputLock(delayTime));
+    }
+
+
+    private IEnumerator DelayInputLock(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+    }
+
+
+    private IEnumerator StartDialogueCoroutine(float delayTime)
+    {
+        yield return new WaitForSeconds(delayTime);
+        Controller.canMove = false;
+        isDialogueActive = true;
+        PlayNextDialogueSound();
+        UpdateDialogueUI();
     }
 }

@@ -183,6 +183,11 @@ namespace StarterAssets
                     canMove = true;
                     _isSmoothingReset = false;
                     _animator.applyRootMotion = false; // 完全归零后关闭 Root Motion
+
+                    _controller.height = standingHeight;
+                    _controller.center = standingCenter;
+
+
                 }
             }
         }

@@ -21,6 +21,10 @@ public class PushBoxController : MonoBehaviour
 
     private float pushStartTime = 0f;
 
+    [Header("提示UI")]
+    public string hintCanvasName = "PushHintCanvas"; // 箱子上Canvas的名字
+    private GameObject currentHintCanvas;
+
     void Start()
     {
         characterController = GetComponent<CharacterController>();
@@ -65,7 +69,6 @@ public class PushBoxController : MonoBehaviour
         {
             GameObject hitBox = hit.collider.gameObject;
 
-            // 如果正在推，只检查是否仍然检测到当前箱子
             if (isPushing)
             {
                 if (hitBox == currentBox)
@@ -75,22 +78,52 @@ public class PushBoxController : MonoBehaviour
             }
             else
             {
-                currentBox = hitBox;
+                // 切换新箱子时，关闭上一个提示
+                if (currentBox != hitBox)
+                {
+                    HideHint();
+                    currentBox = hitBox;
+                    ShowHint(currentBox);
+                }
             }
         }
         else
         {
             if (!isPushing)
             {
+                HideHint();
                 currentBox = null;
             }
         }
+
     }
+
+
+    void ShowHint(GameObject box)
+    {
+        Transform hint = box.transform.Find(hintCanvasName);
+        if (hint != null)
+        {
+            currentHintCanvas = hint.gameObject;
+            currentHintCanvas.SetActive(true);
+        }
+    }
+
+    void HideHint()
+    {
+        if (currentHintCanvas != null)
+        {
+            currentHintCanvas.SetActive(false);
+            currentHintCanvas = null;
+        }
+    }
+
 
     void EnterPushState()
     {
         isPushing = true;
         pushStartTime = Time.time;
+        HideHint(); // 进入推箱时关闭提示
         animator.SetBool("IsPushing", false);
         animator.SetBool("IsPushingIdle", true); // 进入推箱idle状态
 
@@ -107,6 +140,7 @@ public class PushBoxController : MonoBehaviour
         animator.SetBool("IsPushing", false);
         animator.SetBool("IsPushingIdle", false); // 退出推箱状态
         currentBox = null;
+        HideHint(); // 退出时也关闭提示
         Debug.Log("退出推箱状态");
     }
 

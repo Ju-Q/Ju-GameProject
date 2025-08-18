@@ -8,7 +8,22 @@ public class ItemPickupManager : MonoBehaviour
     public float pickupRange = 3f;        // 拾取距离
     public LayerMask pickupLayerMask;    // 拾取物品所属的层级（可选）
 
+    [Header("音效设置")]
+    public AudioClip pickupPropASound;   // 拾取 PropA 的音效
+    public AudioClip pickupPropBSound;   // 拾取 PropB 的音效
+    private AudioSource audioSource;
+
     private bool hasPickedPropA = false; // 是否已经拾取过 PropA
+
+    private void Start()
+    {
+        // 获取或添加 AudioSource
+        audioSource = GetComponent<AudioSource>();
+        if (audioSource == null)
+        {
+            audioSource = gameObject.AddComponent<AudioSource>();
+        }
+    }
 
     private void Update()
     {
@@ -47,6 +62,9 @@ public class ItemPickupManager : MonoBehaviour
                     }
                 }
 
+                // 播放 PropA 音效
+                PlaySound(pickupPropASound);
+
                 Destroy(target);
                 return;
             }
@@ -62,7 +80,12 @@ public class ItemPickupManager : MonoBehaviour
                 {
                     SkillPointManager.Instance.AddSkillPoint();
                     Debug.Log("拾取了一个 PropB");
-                    Destroy(target);
+
+                    // 播放 PropB 音效
+                    PlaySound(pickupPropBSound);
+
+                    //Destroy(target);
+                    target.SetActive(false);
                 }
                 else
                 {
@@ -70,6 +93,14 @@ public class ItemPickupManager : MonoBehaviour
                 }
                 return;
             }
+        }
+    }
+
+    private void PlaySound(AudioClip clip)
+    {
+        if (clip != null && audioSource != null)
+        {
+            audioSource.PlayOneShot(clip);
         }
     }
 
