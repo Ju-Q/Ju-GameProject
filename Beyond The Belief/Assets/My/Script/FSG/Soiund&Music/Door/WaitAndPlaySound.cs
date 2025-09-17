@@ -86,16 +86,16 @@ public class WaitAndPlaySound : MonoBehaviour
 
         yield return new WaitForSeconds(waitTime);
 
-        // 播放音效
-        if (audioSource != null && soundToPlay != null)
-        {
-            audioSource.PlayOneShot(soundToPlay);
-        }
 
         // 触发Animator Trigger
         if (targetAnimator != null && !string.IsNullOrEmpty(triggerName))
         {
             targetAnimator.SetTrigger(triggerName);
+            // 播放音效
+            if (audioSource != null && soundToPlay != null)
+            {
+                audioSource.PlayOneShot(soundToPlay);
+            }
         }
     }
 }

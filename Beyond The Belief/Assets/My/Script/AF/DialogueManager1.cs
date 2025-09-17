@@ -37,23 +37,23 @@ public class DialogueManager1 : MonoBehaviour
     private float inputCooldown = 0.3f;
     private bool inputLocked = false;
     private ThirdPersonController Controller;
+    public static bool AnyDialogueActive = false; // 全局标记
 
     // 对话结束事件
     public Action OnDialogueEnd;
 
     void Start()
+{
+    Controller = GameObject.FindGameObjectWithTag("Player").GetComponent<ThirdPersonController>();
+    if (dialogues.Count > 0 )
     {
-        Controller = GameObject.FindGameObjectWithTag("Player").GetComponent<ThirdPersonController>();
-        if (dialogues.Count > 0 )
-        {
-            // 默认非重复模式时，场景开始自动触发一次
-            StartDialogueWithDelay(startDelay);
-        }
-        else
-        {
-            isDialogueActive = false;
-        }
+        StartCoroutine(StartDialogueCoroutine(startDelay));
     }
+    else
+    {
+        isDialogueActive = false;
+    }
+}
 
     void Update()
     {
@@ -171,6 +171,7 @@ public class DialogueManager1 : MonoBehaviour
         backgroundImage.enabled = false;
         characterPortrait.enabled = false;
         isDialogueActive = false;
+        AnyDialogueActive = false; // 对话结束时置 false
 
         Controller.canMove = true;
         OnDialogueEnd?.Invoke();
@@ -222,7 +223,9 @@ public class DialogueManager1 : MonoBehaviour
         yield return new WaitForSeconds(delayTime);
         Controller.canMove = false;
         isDialogueActive = true;
+        AnyDialogueActive = true; // 开始对话时置 true
         PlayNextDialogueSound();
         UpdateDialogueUI();
+       
     }
 }

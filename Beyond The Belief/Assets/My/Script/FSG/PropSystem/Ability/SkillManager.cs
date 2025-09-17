@@ -32,6 +32,7 @@ public class SkillManager : MonoBehaviour
     public float triggerStartRadius = 0.1f;
     public float triggerEndRadius = 3f;
 
+
     [Header("Skill Audio Settings")]
     public AudioSource audioSource;          // 用于播放音效的 AudioSource
     public AudioClip chargeLoopClip;         // 蓄能音效 (循环)
@@ -51,6 +52,9 @@ public class SkillManager : MonoBehaviour
     {
         if (playerController != null && playerController.isDead)
             return;
+        if (DialogueManager1.AnyDialogueActive)
+            return; // 有对话时禁止技能
+
 
         if (isSkillPlaying) return;
 

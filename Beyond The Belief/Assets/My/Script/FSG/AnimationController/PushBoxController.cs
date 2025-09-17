@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 
+
 public class PushBoxController : MonoBehaviour
 {
     [Header("推箱检测")]
@@ -23,7 +24,11 @@ public class PushBoxController : MonoBehaviour
 
     [Header("提示UI")]
     public string hintCanvasName = "PushHintCanvas"; // 箱子上Canvas的名字
+    //private GameObject currentHintCanvas;
+    [Header("提示UI")]
+    public GameObject hintPrefab; // 拖入 PushHintCanvasPrefab
     private GameObject currentHintCanvas;
+
 
     void Start()
     {
@@ -101,11 +106,19 @@ public class PushBoxController : MonoBehaviour
 
     void ShowHint(GameObject box)
     {
-        Transform hint = box.transform.Find(hintCanvasName);
-        if (hint != null)
+        if (currentHintCanvas == null)
         {
-            currentHintCanvas = hint.gameObject;
-            currentHintCanvas.SetActive(true);
+            // 实例化提示UI
+            currentHintCanvas = Instantiate(hintPrefab);
+        }
+
+        currentHintCanvas.SetActive(true);
+
+        // 让UI跟随当前箱子
+        BillboardUI follow = currentHintCanvas.GetComponent<BillboardUI>();
+        if (follow != null)
+        {
+            follow.target = box.transform;
         }
     }
 
@@ -114,9 +127,18 @@ public class PushBoxController : MonoBehaviour
         if (currentHintCanvas != null)
         {
             currentHintCanvas.SetActive(false);
-            currentHintCanvas = null;
         }
     }
+
+
+   /* void HideHint()
+    {
+        if (currentHintCanvas != null)
+        {
+            currentHintCanvas.SetActive(false);
+            currentHintCanvas = null;
+        }
+    }*/
 
 
     void EnterPushState()

@@ -15,6 +15,10 @@ public class ForceDetectionZone : MonoBehaviour
     private Transform player;
     private ThirdPersonController controller;
 
+    [Header("关联的需要重置的OpenGate")]
+    public OpenGate targetOpenGate;
+
+
     void OnTriggerEnter(Collider other)
     {
         if (other.CompareTag("Player"))
@@ -76,5 +80,12 @@ public class ForceDetectionZone : MonoBehaviour
     public void ResetTrigger()
     {
         hasTriggered = false;
+
+        if (targetOpenGate != null)
+        {
+            targetOpenGate.hasConsumedSkillPoint = false;
+            Debug.Log("OpenGate 扣点状态已重置");
+        }
+
     }
 }

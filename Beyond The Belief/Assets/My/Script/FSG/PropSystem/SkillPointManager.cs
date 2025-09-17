@@ -50,6 +50,9 @@ public class SkillPointManager : MonoBehaviour
     // ====== 增加技能点 ======
     public void AddSkillPoint()
     {
+
+        if (DialogueManager1.AnyDialogueActive) return; // 对话时禁止加点
+
         if (currentSkillPoints < maxSkillPoints)
         {
             currentSkillPoints++;
@@ -60,6 +63,8 @@ public class SkillPointManager : MonoBehaviour
     // ====== 强制设置技能点数值 ======
     public void SetSkillPoints(int value)
     {
+
+        if (DialogueManager1.AnyDialogueActive) return; // 对话时禁止加点
         // 限制数值在0和maxSkillPoints之间
         currentSkillPoints = Mathf.Clamp(value, 0, maxSkillPoints);
         UpdateSkillPointUI();
@@ -68,6 +73,7 @@ public class SkillPointManager : MonoBehaviour
     // ====== 消耗技能点 ======
     public void UseSkillPoint()
     {
+        if (DialogueManager1.AnyDialogueActive) return; // 对话时禁止加点
         if (currentSkillPoints > 0)
         {
             currentSkillPoints--;

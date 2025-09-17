@@ -14,12 +14,12 @@ public class AudioSourceActivator : MonoBehaviour
         {
             audioSource.Stop();
             //audioSource.volume = 0; // 可选：设置音量为0以避免听到声音
-            Debug.Log("Starting coroutine to activate audio source.");
+            //Debug.Log("Starting coroutine to activate audio source.");
             StartCoroutine(ActivateAudioSource());
         }
         else
         {
-            Debug.LogError("AudioSource is not assigned!");
+            //Debug.LogError("AudioSource is not assigned!");
         }
     }
 
@@ -33,11 +33,11 @@ public class AudioSourceActivator : MonoBehaviour
         {
             audioSource.volume = 1; // 恢复音量
             audioSource.Play(); // 播放音频
-            Debug.Log("AudioSource activated and playing.");
+            //Debug.Log("AudioSource activated and playing.");
         }
         else
         {
-            Debug.LogError("AudioSource is null after delay.");
+            //Debug.LogError("AudioSource is null after delay.");
         }
     }
 }

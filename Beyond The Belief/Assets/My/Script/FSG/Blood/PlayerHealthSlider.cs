@@ -75,7 +75,7 @@ public class PlayerHealthSlider : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if (isDead || Controller.isDead) return; // 新增判断
+        if (isDead || Controller.isDead) return;
 
         RespawnPointSetter setter = other.GetComponent<RespawnPointSetter>();
         if (setter != null)
@@ -87,16 +87,14 @@ public class PlayerHealthSlider : MonoBehaviour
             }
 
             isInTrigger = true;
-
             RespawnManager.Instance.SetCurrentRespawnPoint(setter.respawnPoint);
-
             StartChangeHealthValue(healthSlider.value, 0f, decreaseDuration);
         }
     }
 
     private void OnTriggerExit(Collider other)
     {
-        if (isDead || Controller.isDead) return; // 新增判断
+        if (isDead || Controller.isDead) return;
 
         RespawnPointSetter setter = other.GetComponent<RespawnPointSetter>();
         if (setter != null)
@@ -115,16 +113,14 @@ public class PlayerHealthSlider : MonoBehaviour
     private void StartChangeHealthValue(float from, float to, float duration)
     {
         if (changeHealthCoroutine != null)
-        {
             StopCoroutine(changeHealthCoroutine);
-        }
+
         changeHealthCoroutine = StartCoroutine(ChangeHealthValueCoroutine(from, to, duration));
     }
 
     private IEnumerator ChangeHealthValueCoroutine(float from, float to, float duration)
     {
         float elapsed = 0f;
-
         while (elapsed < duration)
         {
             elapsed += Time.deltaTime;
@@ -132,7 +128,6 @@ public class PlayerHealthSlider : MonoBehaviour
             healthSlider.value = value;
             UpdateBloodImageAlpha();
 
-            // 死亡触发
             if (value <= 0f && !isDead && !Controller.isDead)
             {
                 TriggerDeath();
@@ -154,7 +149,7 @@ public class PlayerHealthSlider : MonoBehaviour
     private void TriggerDeath()
     {
         isDead = true;
-        Controller.isDead = true; // 同步给 ThirdPersonController
+        Controller.isDead = true;
 
         if (playerAnimator != null)
         {
@@ -179,10 +174,9 @@ public class PlayerHealthSlider : MonoBehaviour
 
     private IEnumerator StartBlackout()
     {
-        // 如果已经由外部触发死亡，这里不重复执行
-        if (Controller.isDead && !isDead)
-            yield break;
-
+        if (Controller.isDead && !isDead) yield break;
+        if (changeHealthCoroutine != null)
+            StopCoroutine(changeHealthCoroutine);
         // 黑屏淡入
         float elapsed = 0f;
         while (elapsed < blackoutFadeInTime)
@@ -210,8 +204,8 @@ public class PlayerHealthSlider : MonoBehaviour
         }
 
         yield return new WaitForSeconds(blackoutDuration);
-        playerAnimator.applyRootMotion = false;
 
+        playerAnimator.applyRootMotion = false;
         yield return new WaitForSeconds(0.1f);
 
         if (playerModel != null)
@@ -219,7 +213,10 @@ public class PlayerHealthSlider : MonoBehaviour
             playerModel.localPosition = Vector3.zero;
             playerModel.localRotation = Quaternion.identity;
         }
+
         Controller.canMove = true;
+
+        // 黑屏淡出
         elapsed = 0f;
         while (elapsed < blackoutFadeOutTime)
         {
