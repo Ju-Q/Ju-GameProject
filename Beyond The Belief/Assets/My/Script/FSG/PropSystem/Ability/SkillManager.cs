@@ -31,7 +31,7 @@ public class SkillManager : MonoBehaviour
     public float triggerExpandDuration = 1f;
     public float triggerStartRadius = 0.1f;
     public float triggerEndRadius = 3f;
-
+    public float triggerStartDelay = 0.3f;
 
     [Header("Skill Audio Settings")]
     public AudioSource audioSource;          // 用于播放音效的 AudioSource
@@ -41,6 +41,13 @@ public class SkillManager : MonoBehaviour
 
     private ItemPickupManager itemPickupManager;
     private ThirdPersonController playerController;
+
+    [Header("Camera Shake Settings")]
+    public Camera mainCamera;        // 主摄像机
+    public float shakeDuration = 0.2f; // 抖动持续时间
+    public float shakeMagnitude = 0.3f; // 抖动幅度
+
+
 
     void Start()
     {
@@ -233,6 +240,13 @@ public class SkillManager : MonoBehaviour
         trigger.enabled = true;
         trigger.radius = triggerStartRadius;
 
+        // 等待延迟时间
+        if (triggerStartDelay > 0f)
+            yield return new WaitForSeconds(triggerStartDelay);
+
+        // 开始扩张瞬间抖动摄像机
+        StartCoroutine(CameraShake());
+
         float timer = 0f;
         while (timer < triggerExpandDuration)
         {
@@ -244,4 +258,32 @@ public class SkillManager : MonoBehaviour
 
         skillTriggerObject.SetActive(false);
     }
+
+
+    private IEnumerator CameraShake()
+    {
+        if (mainCamera == null)
+            yield break;
+
+        Vector3 originalPos = mainCamera.transform.localPosition;
+        float elapsed = 0f;
+
+        while (elapsed < shakeDuration)
+        {
+            elapsed += Time.deltaTime;
+            float progress = elapsed / shakeDuration; // 0~1
+                                                      // 使用正弦曲线做缓入缓出：sin(progress * π) 从 0 平滑到 1 再回到 0
+            float magnitude = Mathf.Sin(progress * Mathf.PI) * shakeMagnitude;
+
+            float x = Random.Range(-1f, 1f) * magnitude;
+            float y = Random.Range(-1f, 1f) * magnitude;
+            mainCamera.transform.localPosition = originalPos + new Vector3(x, y, 0f);
+
+            yield return null;
+        }
+
+        mainCamera.transform.localPosition = originalPos;
+    }
+
+
 }

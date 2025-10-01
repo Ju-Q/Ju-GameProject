@@ -84,7 +84,7 @@ public class ForceDetectionZone : MonoBehaviour
         if (targetOpenGate != null)
         {
             targetOpenGate.hasConsumedSkillPoint = false;
-            Debug.Log("OpenGate 扣点状态已重置");
+            //Debug.Log("OpenGate 扣点状态已重置");
         }
 
     }

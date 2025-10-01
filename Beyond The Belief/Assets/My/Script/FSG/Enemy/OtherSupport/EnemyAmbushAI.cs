@@ -31,9 +31,9 @@ public class EnemyAmbushAI : MonoBehaviour
     private float chaseTimer = 0f;
 
     [Header("减速区域速度设置")]
-    public float slowPatrolSpeed = 1f; // 在减速区巡逻速度
-    public float slowChaseSpeed = 2f;  // 在减速区追击速度
-    private bool isInSlowZone = false; // 是否在减速区
+    public float slowPatrolSpeed = 1f;
+    public float slowChaseSpeed = 2f;
+    private bool isInSlowZone = false;
 
     [Header("目标与动画")]
     public Transform player;
@@ -70,101 +70,146 @@ public class EnemyAmbushAI : MonoBehaviour
     public EnemyType enemyType = EnemyType.Normal;
 
     [Header("埋伏模式设置")]
-    public bool isAmbushActive = false; // 初始为false，表示未激活
-    public string wakeTrigger = "Wake"; // wake动画触发器
-    public Transform patrolAreaCenter; // 巡逻区域中心点
-    public float patrolAreaRadius = 5f; // 巡逻区域半径
-    public float ambushDelay = 2f; // 触发后等待秒数
+    public bool isAmbushActive = false;
+    public string wakeTrigger = "Wake";
+    public float wakeUpDuration = 3f; // 苏醒动画时长（播放wake动画的真实时长）
+    private bool isWakingUp = false; // 是否正在苏醒（在此期间不允许位移）
+    public Transform patrolAreaCenter;
+    public float patrolAreaRadius = 5f;
+    public float ambushDelay = 2f; // 触发后等待（比如玩家触发触发箱后等待多久开始wake）
     private Vector3 ambushStartPosition;
     private Quaternion ambushStartRotation;
     public GameObject ambushTriggerBox;
+    private bool canCatchPlayer = true;
 
     [Header("音效设置")]
-    public AudioSource audioSource;      // 用于播放声音
-    public AudioClip[] enemySounds;      // 敌人叫声集合
-    public float minSoundInterval = 3f;  // 最短间隔
-    public float maxSoundInterval = 7f;  // 最长间隔
-    private float soundTimer = 0f;       // 计时器
-    private float nextSoundDelay = 0f;   // 下一次播放延迟
-    public AudioClip attackSound;          // 抓到玩家时播放的音效
-    public float attackVolume = 1f;    // 默认音量
+    public AudioSource audioSource;
+    public AudioClip[] enemySounds;
+    public float minSoundInterval = 3f;
+    public float maxSoundInterval = 7f;
+    private float soundTimer = 0f;
+    private float nextSoundDelay = 0f;
+    public AudioClip attackSound;
+    public float attackVolume = 1f;
 
+    private bool isResettingAmbush = false;
 
     void Start()
     {
         agent = GetComponent<NavMeshAgent>();
-        agent.acceleration = 10f;
-        agent.angularSpeed = 360f;
-        startPosition = transform.localPosition;
-        startRotation = transform.localRotation;
+        if (agent != null)
+        {
+            agent.acceleration = 10f;
+            agent.angularSpeed = 360f;
+        }
+
+        // 使用世界坐标，便于 Warp/SetDestination 正确工作
+        startPosition = transform.position;
+        startRotation = transform.rotation;
         enemyAnimator.applyRootMotion = false;
+        canCatchPlayer = true;
 
         if (enemyType == EnemyType.Ambush)
         {
-            // 埋伏状态：完全静止，动画进入Idle或空状态
-            agent.enabled = false;
-            enemyAnimator.SetBool("isWalking", false);
-            enemyAnimator.SetBool("isRunning", false);
-            enemyAnimator.ResetTrigger("Idle");
+            // 初始埋伏状态：禁用 agent，播放 idle
+            if (agent != null) agent.enabled = false;
 
-            ambushStartPosition = transform.localPosition;
-            //Debug.Log("记录坐标" + transform.localPosition + ambushStartPosition);
-            ambushStartRotation = transform.localRotation;
+            if (enemyAnimator != null)
+            {
+                enemyAnimator.SetBool("isWalking", false);
+                enemyAnimator.SetBool("isRunning", false);
+                enemyAnimator.ResetTrigger("Idle");
+            }
+
+            ambushStartPosition = transform.position;
+            ambushStartRotation = transform.rotation;
             return;
         }
 
-        // 普通敌人的初始化
-        if (canPatrol && patrolPoints.Length > 0)
+        // 普通敌人初始化（在 agent 可用时设置路径）
+        if (canPatrol && patrolPoints != null && patrolPoints.Length > 0)
         {
             currentPatrolIndex = GetClosestPatrolPointIndex();
-            agent.SetDestination(patrolPoints[currentPatrolIndex].position);
-            enemyAnimator.SetBool("isWalking", true);
-            enemyAnimator.ResetTrigger("Idle");
+            if (agent != null && agent.enabled)
+            {
+                Vector3 sample;
+                if (SampleNavMeshPosition(patrolPoints[currentPatrolIndex].position, out sample))
+                    agent.Warp(sample);
+                agent.SetDestination(patrolPoints[currentPatrolIndex].position);
+            }
+            if (enemyAnimator != null)
+            {
+                enemyAnimator.SetBool("isWalking", true);
+                enemyAnimator.ResetTrigger("Idle");
+            }
         }
         else
         {
-            enemyAnimator.SetBool("isWalking", false);
-            enemyAnimator.SetBool("isRunning", false);
-            enemyAnimator.SetTrigger("Idle");
+            if (enemyAnimator != null)
+            {
+                enemyAnimator.SetBool("isWalking", false);
+                enemyAnimator.SetBool("isRunning", false);
+                enemyAnimator.SetTrigger("Idle");
+            }
         }
         nextSoundDelay = Random.Range(minSoundInterval, maxSoundInterval);
-
     }
-
     void Update()
     {
-       
-        if (enemyType == EnemyType.Ambush && Controller.isDead && state != 0)
+        if (isDead || isInBlackScreen) return;
+
+        // 🔹 修改：埋伏敌人监听主角死亡，不再判断 state
+        if (enemyType == EnemyType.Ambush && Controller != null && Controller.isDead)
         {
-            StartCoroutine(ResetAmbushAfterDelay(2f));
-            isAmbushActive = false;
+            if (!isResettingAmbush)
+            {
+                StartCoroutine(ResetAmbushAfterDelay(2f));
+            }
             return;
         }
-        if (isDead || isInBlackScreen) return;
 
         PlayRandomSoundIfNeeded();
 
+        if (player == null) return;
         float distanceToPlayer = Vector3.Distance(transform.position, player.position);
-
 
         switch (state)
         {
             case 0:
+                // 🔹 修改：埋伏敌人不自动追击，不做巡逻或检测
+                if (enemyType == EnemyType.Ambush)
+                {
+                    // 维持当前 idle 状态
+                    if (enemyAnimator != null)
+                    {
+                        enemyAnimator.SetBool("isWalking", false);
+                        enemyAnimator.SetBool("isRunning", false);
+                        enemyAnimator.ResetTrigger("Idle");
+                    }
+                    break;
+                }
+
                 if (canPatrol) Patrol();
                 else
                 {
-                    agent.SetDestination(transform.position);
-                    enemyAnimator.SetBool("isWalking", false);
-                    enemyAnimator.SetBool("isRunning", false);
-                    enemyAnimator.SetTrigger("Idle");
+                    if (agent != null && agent.enabled) agent.SetDestination(transform.position);
+                    if (enemyAnimator != null)
+                    {
+                        enemyAnimator.SetBool("isWalking", false);
+                        enemyAnimator.SetBool("isRunning", false);
+                        enemyAnimator.SetTrigger("Idle");
+                    }
                 }
 
                 if (IsPlayerDetected(distanceToPlayer))
                 {
                     state = 1;
-                    enemyAnimator.SetBool("isWalking", false);
-                    enemyAnimator.SetBool("isRunning", true);
-                    enemyAnimator.ResetTrigger("Idle");
+                    if (enemyAnimator != null)
+                    {
+                        enemyAnimator.SetBool("isWalking", false);
+                        enemyAnimator.SetBool("isRunning", true);
+                        enemyAnimator.ResetTrigger("Idle");
+                    }
                 }
                 break;
 
@@ -173,6 +218,7 @@ public class EnemyAmbushAI : MonoBehaviour
                 break;
 
             case 2:
+                // 攻击中 — 等待协程处理
                 break;
         }
 
@@ -181,6 +227,7 @@ public class EnemyAmbushAI : MonoBehaviour
 
     bool IsPlayerDetected(float distanceToPlayer)
     {
+        if (player == null) return false;
         if (distanceToPlayer > detectionRange) return false;
 
         Vector3 directionToPlayer = (player.position - transform.position).normalized;
@@ -197,7 +244,23 @@ public class EnemyAmbushAI : MonoBehaviour
 
     void Patrol()
     {
-        /*agent.speed = isInSlowZone ? slowPatrolSpeed : patrolSpeed;
+        // 如果 agent 不存在或未启用则不执行巡逻逻辑
+        if (agent == null || !agent.enabled) return;
+
+        // 防止除以零
+        if (patrolPoints == null || patrolPoints.Length == 0)
+        {
+            agent.SetDestination(transform.position);
+            if (enemyAnimator != null)
+            {
+                enemyAnimator.SetBool("isWalking", false);
+                enemyAnimator.SetBool("isRunning", false);
+                enemyAnimator.SetTrigger("Idle");
+            }
+            return;
+        }
+
+        agent.speed = isInSlowZone ? slowPatrolSpeed : patrolSpeed;
 
         if (!agent.pathPending && agent.remainingDistance < 0.2f)
         {
@@ -205,41 +268,57 @@ public class EnemyAmbushAI : MonoBehaviour
             agent.SetDestination(patrolPoints[currentPatrolIndex].position);
         }
 
-        enemyAnimator.SetBool("isWalking", true);
-        enemyAnimator.SetBool("isRunning", false);
-        enemyAnimator.ResetTrigger("Idle");*/
+        if (enemyAnimator != null)
+        {
+            enemyAnimator.SetBool("isWalking", true);
+            enemyAnimator.SetBool("isRunning", false);
+            enemyAnimator.ResetTrigger("Idle");
+        }
     }
 
     void ChasePlayer(float distance)
     {
+        // 如果正在苏醒，啥也不做（重要：不要调用 SetDestination）
+        if (isWakingUp) return;
+
+        // 如果 agent 不存在或未启用则不追击
+        if (agent == null || !agent.enabled) return;
+
         agent.speed = isInSlowZone ? slowChaseSpeed : chaseSpeed;
+
+        // 更新目的地（只有 agent 启用且不是苏醒期间才会执行）
         agent.SetDestination(player.position);
 
+        // 抓捕逻辑
         if (distance <= catchDistance)
         {
-            if (Controller.isDead) return;
-            Controller.isDead = true;
+            if (!canCatchPlayer) return;
+            if (Controller != null && Controller.isDead) return;
+
+            if (Controller != null) Controller.isDead = true;
 
             if (catchEffect != null) catchEffect.SetActive(false);
 
-            // 播放攻击音效
             if (audioSource != null && attackSound != null)
-            {
                 audioSource.PlayOneShot(attackSound, attackVolume);
-            }
-
 
             state = 2;
+
+            // 停止 agent 以触发攻击动画（agent 已启用）
             agent.isStopped = true;
-            enemyAnimator.SetTrigger("Attack");
-            enemyAnimator.SetBool("isRunning", false);
+
+            if (enemyAnimator != null)
+            {
+                enemyAnimator.SetTrigger("Attack");
+                enemyAnimator.SetBool("isRunning", false);
+            }
 
             if (playerAnimator != null)
             {
                 playerAnimator.applyRootMotion = true;
-                Controller.isDead = true;
+                if (Controller != null) Controller.isDead = true;
                 playerAnimator.SetTrigger("Caught");
-                Controller.canMove = false;
+                if (Controller != null) Controller.canMove = false;
                 playerAnimator.speed = 1;
             }
 
@@ -257,6 +336,19 @@ public class EnemyAmbushAI : MonoBehaviour
     {
         chaseTimer = 0f;
         state = 0;
+
+        if (agent == null || !agent.enabled)
+        {
+            // 若 agent 不可用，直接设置动画Idle
+            if (enemyAnimator != null)
+            {
+                enemyAnimator.SetBool("isWalking", false);
+                enemyAnimator.SetBool("isRunning", false);
+                enemyAnimator.SetTrigger("Idle");
+            }
+            return;
+        }
+
         agent.isStopped = false;
 
         if (enemyType == EnemyType.Ambush)
@@ -265,39 +357,48 @@ public class EnemyAmbushAI : MonoBehaviour
             return;
         }
 
-        if (canPatrol && patrolPoints.Length > 0)
+        if (canPatrol && patrolPoints != null && patrolPoints.Length > 0)
         {
             currentPatrolIndex = GetClosestPatrolPointIndex();
             agent.SetDestination(patrolPoints[currentPatrolIndex].position);
-            enemyAnimator.SetBool("isWalking", true);
-            enemyAnimator.ResetTrigger("Idle");
+            if (enemyAnimator != null)
+            {
+                enemyAnimator.SetBool("isWalking", true);
+                enemyAnimator.ResetTrigger("Idle");
+            }
         }
         else
         {
-            enemyAnimator.SetBool("isWalking", false);
-            enemyAnimator.SetBool("isRunning", false);
-            enemyAnimator.SetTrigger("Idle");
+            if (enemyAnimator != null)
+            {
+                enemyAnimator.SetBool("isWalking", false);
+                enemyAnimator.SetBool("isRunning", false);
+                enemyAnimator.SetTrigger("Idle");
+            }
         }
     }
 
     IEnumerator RandomPatrolInArea()
     {
-        while (state == 0) // 巡逻状态
+        while (state == 0)
         {
             Vector3 randomPoint = patrolAreaCenter.position + Random.insideUnitSphere * patrolAreaRadius;
             if (NavMesh.SamplePosition(randomPoint, out NavMeshHit hit, patrolAreaRadius, NavMesh.AllAreas))
             {
-                agent.SetDestination(hit.position);
+                if (agent != null && agent.enabled) agent.SetDestination(hit.position);
             }
-            enemyAnimator.SetBool("isWalking", true);
-            enemyAnimator.SetBool("isRunning", false);
-            yield return new WaitForSeconds(Random.Range(3f, 6f)); // 随机停留时间
+            if (enemyAnimator != null)
+            {
+                enemyAnimator.SetBool("isWalking", true);
+                enemyAnimator.SetBool("isRunning", false);
+            }
+            yield return new WaitForSeconds(Random.Range(3f, 6f));
         }
     }
 
-
     void RotateTowardsMovement()
     {
+        if (agent == null) return;
         if (agent.velocity.sqrMagnitude > 0.1f)
         {
             Quaternion targetRotation = Quaternion.LookRotation(agent.velocity.normalized);
@@ -309,89 +410,111 @@ public class EnemyAmbushAI : MonoBehaviour
     {
         isInBlackScreen = true;
 
-        yield return new WaitForSeconds(1f);
+        // 等待短暂延迟，让抓捕动画播放一帧
+        yield return new WaitForSeconds(0.1f);
+
+        // 黑屏淡入
         float t = 0f;
-        Color originalColor = blackScreen.color;
+        Color originalColor = blackScreen != null ? blackScreen.color : new Color(0, 0, 0, 0);
         while (t < blackFadeDuration)
         {
             t += Time.deltaTime;
-            blackScreen.color = new Color(originalColor.r, originalColor.g, originalColor.b, Mathf.Lerp(0f, 1f, t / blackFadeDuration));
+            if (blackScreen != null)
+                blackScreen.color = new Color(originalColor.r, originalColor.g, originalColor.b, Mathf.Lerp(0f, 1f, t / blackFadeDuration));
             yield return null;
         }
-        blackScreen.color = new Color(originalColor.r, originalColor.g, originalColor.b, 1f);
+        if (blackScreen != null) blackScreen.color = new Color(originalColor.r, originalColor.g, originalColor.b, 1f);
 
+        // 重置玩家状态
         if (SkillPointManager.Instance != null && SkillPointRecord.Instance != null)
         {
             int savedPoints = SkillPointRecord.Instance.GetRememberedPoints();
             SkillPointManager.Instance.SetSkillPoints(savedPoints);
         }
 
-        player.position = playerRespawnPoint.position;
-        transform.position = startPosition;
-        transform.rotation = startRotation;
-        agent.Warp(startPosition);
-        Controller.isCrouching = false;
-        Controller.isDead = false;
+        if (player != null && playerRespawnPoint != null)
+            player.position = playerRespawnPoint.position;
+
+        if (Controller != null)
+        {
+            Controller.isCrouching = false;
+            Controller.isDead = false;
+            Controller.canMove = true;
+        }
 
         if (playerAnimator != null)
         {
             playerAnimator.applyRootMotion = false;
             playerAnimator.SetTrigger("Rebirth");
+            playerAnimator.SetBool("IsCrouching", false);
         }
 
-        playerModel.localPosition = Vector3.zero;
-        playerModel.localRotation = Quaternion.identity;
-        playerAnimator.SetBool("IsCrouching", false);
-
-
-        var zones = FindObjectsOfType<ForceDetectionZone>();
-        foreach (var zone in zones) zone.ResetTrigger();
-
-        yield return new WaitForSeconds(blackStayDuration);
-
-        agent.isStopped = false;
-        state = 0;
-
-        if (canPatrol && patrolPoints.Length > 0)
+        if (playerModel != null)
         {
-            currentPatrolIndex = GetClosestPatrolPointIndex();
-            agent.SetDestination(patrolPoints[currentPatrolIndex].position);
-            enemyAnimator.SetBool("isWalking", true);
-            enemyAnimator.ResetTrigger("Idle");
+            playerModel.localPosition = Vector3.zero;
+            playerModel.localRotation = Quaternion.identity;
+        }
+
+        // 🔹 重置敌人
+        if (enemyType == EnemyType.Ambush)
+        {
+            // Warp 回埋伏点
+            transform.position = ambushStartPosition;
+            transform.rotation = ambushStartRotation;
+
+            // 禁用 agent
+            if (agent != null) agent.enabled = false;
+
+            // 回到埋伏 Idle 动画
+            if (enemyAnimator != null)
+            {
+                enemyAnimator.SetBool("isWalking", false);
+                enemyAnimator.SetBool("isRunning", false);
+                enemyAnimator.SetTrigger("CanAmbush");
+            }
+
+            // 状态重置
+            state = 0;
+            isAmbushActive = false;
+            isResettingAmbush = false;
         }
         else
         {
-            enemyAnimator.SetBool("isWalking", false);
-            enemyAnimator.SetBool("isRunning", false);
-            enemyAnimator.SetTrigger("Idle");
+            // 普通敌人回到巡逻
+            if (agent != null && agent.enabled)
+            {
+                agent.isStopped = false;
+                ReturnToPatrol();
+            }
         }
 
+        // 重置黑屏停留时间
+        yield return new WaitForSeconds(blackStayDuration);
+
+        // 黑屏淡出
         t = 0f;
-        Controller.canMove = true;
-        while (t < blackFadeDuration)
+        if (blackScreen != null)
         {
-            t += Time.deltaTime;
-            blackScreen.color = new Color(originalColor.r, originalColor.g, originalColor.b, Mathf.Lerp(1f, 0f, t / blackFadeDuration));
-            yield return null;
+            while (t < blackFadeDuration)
+            {
+                t += Time.deltaTime;
+                blackScreen.color = new Color(originalColor.r, originalColor.g, originalColor.b, Mathf.Lerp(1f, 0f, t / blackFadeDuration));
+                yield return null;
+            }
+            blackScreen.color = new Color(originalColor.r, originalColor.g, originalColor.b, 0f);
         }
-        blackScreen.color = new Color(originalColor.r, originalColor.g, originalColor.b, 0f);
 
-        Controller.isDead = false;
         isInBlackScreen = false;
-        Controller.canMove = true;
 
+        // 触发器重置
         if (ambushTriggerBox != null)
-        {
             ambushTriggerBox.SetActive(true);
-        }
-
-
-
-
     }
+
 
     int GetClosestPatrolPointIndex()
     {
+        if (patrolPoints == null || patrolPoints.Length == 0) return 0;
         int closestIndex = 0;
         float closestDistance = Vector3.Distance(transform.position, patrolPoints[0].position);
         for (int i = 1; i < patrolPoints.Length; i++)
@@ -408,7 +531,7 @@ public class EnemyAmbushAI : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if (other.CompareTag("Marsh")) // 进入减速区
+        if (other.CompareTag("Marsh"))
         {
             isInSlowZone = true;
             return;
@@ -429,7 +552,7 @@ public class EnemyAmbushAI : MonoBehaviour
 
     private void OnTriggerExit(Collider other)
     {
-        if (other.CompareTag("Marsh")) // 离开减速区
+        if (other.CompareTag("Marsh"))
         {
             isInSlowZone = false;
         }
@@ -438,14 +561,14 @@ public class EnemyAmbushAI : MonoBehaviour
     void DieFromSkill()
     {
         isDead = true;
-        enemyAnimator.SetTrigger(deathTrigger);
-        agent.isStopped = true;
+        if (enemyAnimator != null) enemyAnimator.SetTrigger(deathTrigger);
+        if (agent != null) agent.isStopped = true;
         StartCoroutine(DeathSequence());
     }
 
     IEnumerator DeathSequence()
     {
-        agent.enabled = false;
+        if (agent != null) agent.enabled = false;
         yield return new WaitForSeconds(deathFallDelay);
 
         Vector3 start = transform.position;
@@ -463,95 +586,121 @@ public class EnemyAmbushAI : MonoBehaviour
         gameObject.SetActive(false);
     }
 
-
     public void TryForceDetection()
     {
         if (state == 0)
         {
             state = 1;
-            enemyAnimator.SetBool("isWalking", false);
-            enemyAnimator.SetBool("isRunning", true);
-            enemyAnimator.ResetTrigger("Idle");
+            if (enemyAnimator != null)
+            {
+                enemyAnimator.SetBool("isWalking", false);
+                enemyAnimator.SetBool("isRunning", true);
+                enemyAnimator.ResetTrigger("Idle");
+            }
         }
     }
 
+    // 统一的埋伏激活入口：会先等待 ambushDelay，然后播放 wake 动画并在 wakeUpDuration 内保持不动，最后启用 agent 并开始追击
     public void ActivateAmbush()
     {
         if (enemyType != EnemyType.Ambush || isAmbushActive) return;
 
         isAmbushActive = true;
+        canCatchPlayer = false;
         StartCoroutine(DelayBeforeWake());
     }
 
     IEnumerator DelayBeforeWake()
     {
-        // 先等待指定秒数
+        // 等待触发前的延迟（例如触发箱激活后有个延迟）
         yield return new WaitForSeconds(ambushDelay);
 
-        // 激活AI并播放wake动画
-        agent.enabled = true;
-        agent.isStopped = true; // 等待wake动画播放
-        enemyAnimator.SetTrigger(wakeTrigger);
+        // 播放唤醒动画（苏醒期间禁止位移）
+        if (enemyAnimator != null)
+        {
+            enemyAnimator.SetTrigger(wakeTrigger);
+        }
 
-        // 等待wake动画播放完成再追击
-        StartCoroutine(WaitWakeAndChase());
+        // 保证在唤醒期间不会被 NavMeshAgent 控制位置：**禁用 agent**
+        if (agent != null && agent.enabled)
+        {
+            agent.enabled = false;
+        }
+
+        isWakingUp = true;
+
+        // 等待苏醒动画时长（根据你的动画长度设置）
+        yield return new WaitForSeconds(wakeUpDuration);
+
+        // 苏醒结束：重新启用 agent，Warp 到当前 transform 以确保 agent 位于 NavMesh 上
+        isWakingUp = false;
+        canCatchPlayer = true;
+
+        if (agent != null)
+        {
+            agent.enabled = true;
+
+            // 优先 sample 一个 navmesh 点来 Warp，若找不到就直接 Warp 到 transform.position（可能无效）
+            Vector3 sample;
+            if (SampleNavMeshPosition(transform.position, out sample))
+            {
+                agent.Warp(sample);
+                // 首次设置目的地开始追击
+                agent.SetDestination(player != null ? player.position : transform.position);
+            }
+            else
+            {
+                agent.Warp(transform.position);
+                if (player != null) agent.SetDestination(player.position);
+            }
+
+            agent.isStopped = false;
+        }
+
+        // 切换状态为追击
+        state = 1;
+        if (enemyAnimator != null)
+        {
+            enemyAnimator.SetBool("isRunning", true);
+            enemyAnimator.SetBool("isWalking", false);
+        }
     }
 
-
-
-    IEnumerator WaitWakeAndChase()
-    {
-        // 这里假设wake动画长度为1.5秒，可以改成用动画事件触发
-        yield return new WaitForSeconds(1.5f);
-        state = 1; // 切换到追击模式
-        agent.isStopped = false;
-        enemyAnimator.SetBool("isRunning", true);
-    }
-
-    private bool isResettingAmbush = false;
-
+    // 埋伏重置：将敌人传回埋伏点并禁用 agent
     IEnumerator ResetAmbushAfterDelay(float delay)
     {
-        if (isResettingAmbush) yield break; // 防止重复执行
+        if (isResettingAmbush) yield break;
         isResettingAmbush = true;
 
-        agent.isStopped = true;
+        if (agent != null && agent.enabled)
+            agent.isStopped = true;
+
         yield return new WaitForSeconds(delay);
 
-        Debug.Log("Ambush重新设置");
-        // 回到埋伏点
-        //agent.Warp(ambushStartPosition);
-        //transform.rotation = ambushStartRotation;
-        transform.localPosition = ambushStartPosition;
-        Debug.Log("重置坐标" + transform.localPosition + ambushStartPosition);
-        transform.localRotation = ambushStartRotation;
+        // 回埋伏点（优先使用 world 坐标记录）
+        if (ambushStartPosition != Vector3.zero)
+        {
+            transform.position = ambushStartPosition;
+        }
+        transform.rotation = ambushStartRotation;
 
+        if (enemyAnimator != null)
+        {
+            enemyAnimator.SetBool("isWalking", false);
+            enemyAnimator.SetBool("isRunning", false);
+            enemyAnimator.SetTrigger("CanAmbush");
+        }
 
-        // 停止动画，回到埋伏Idle状态
-        enemyAnimator.SetBool("isWalking", false);
-        enemyAnimator.SetBool("isRunning", false);
-        //enemyAnimator.ResetTrigger("Ambush");
-        //enemyAnimator.Play("BelowTheGround", 0, 0f); // 直接播放Idle动画（根据你的动画名称调整）
-        enemyAnimator.SetTrigger("CanAmbush");
+        // 禁用 agent 回到埋伏
+        if (agent != null) agent.enabled = false;
 
-       
-
-
-        // 重新禁用NavMeshAgent
-        agent.enabled = false;
-
-        // 重新允许激活wake trigger
         isAmbushActive = false;
-
-        // 回到待机状态
         state = 0;
-
         isResettingAmbush = false;
     }
 
     void PlayRandomSoundIfNeeded()
     {
-        // 只在巡逻或追击时才发声
         if (state != 0 && state != 1) return;
         if (enemySounds == null || enemySounds.Length == 0 || audioSource == null) return;
 
@@ -559,15 +708,25 @@ public class EnemyAmbushAI : MonoBehaviour
 
         if (soundTimer >= nextSoundDelay)
         {
-            // 随机选一个音效
             int index = Random.Range(0, enemySounds.Length);
             audioSource.PlayOneShot(enemySounds[index]);
 
-            // 重置计时器 & 随机下次延迟
             soundTimer = 0f;
             nextSoundDelay = Random.Range(minSoundInterval, maxSoundInterval);
         }
-
     }
 
+    // 帮助：寻找 NavMesh 上的最近点
+    private bool SampleNavMeshPosition(Vector3 target, out Vector3 result)
+    {
+        NavMeshHit hit;
+        float sampleRadius = 2.0f;
+        if (NavMesh.SamplePosition(target, out hit, sampleRadius, NavMesh.AllAreas))
+        {
+            result = hit.position;
+            return true;
+        }
+        result = target;
+        return false;
+    }
 }

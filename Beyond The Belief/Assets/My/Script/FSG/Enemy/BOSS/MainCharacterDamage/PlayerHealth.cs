@@ -1,25 +1,72 @@
-// PlayerHealth.cs
+ï»¿using StarterAssets;
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.UI;
+using System.Collections;
 
 public class PlayerHealth : MonoBehaviour
 {
-    [Tooltip("±»»÷¶àÉÙ´ÎºóÊÓÎªËÀÍö")]
+    [Header("åŸºç¡€è®¾ç½®")]
+    [Tooltip("è¢«å‡»å¤šå°‘æ¬¡åè§†ä¸ºæ­»äº¡")]
     public int hitsToDie = 2;
 
-    
+    [Tooltip("å—å‡»åå¤šå°‘ç§’æ— ä¼¤å®³å¼€å§‹å›è¡€")]
+    public float healDelay = 3f;
+
+    [Tooltip("ä»å½“å‰è¡€é‡åˆ°æ»¡è¡€æ¢å¤éœ€è¦çš„æ—¶é—´ï¼ˆç§’ï¼‰")]
+    public float healDuration = 2f;
+
     public int currentHits = 0;
+
     [HideInInspector]
     public bool isDead { get; private set; } = false;
 
-    // ÔÚ Inspector ¿É°ó¶¨£º±ÈÈç²¥·ÅÊÜ»÷ÒôĞ§/ÉÁºì/¼õÑªUI
-    public UnityEvent OnHit;
-    // ÔÚ Inspector ¿É°ó¶¨£º±ÈÈç²¥·ÅËÀÍö¶¯»­¡¢ºÚÆÁ¡¢ÖØÖÃµÈ
-    public UnityEvent OnDeath;
+    [Header("å—ä¼¤UI")]
+    [Tooltip("å—å‡»æ—¶å±å¹•çº¢è‰²è¦†ç›–UIï¼ˆImageï¼‰")]
+    public Image damageOverlayImage;
 
-    /// <summary>
-    /// Íâ²¿µ÷ÓÃ£ºÍæ¼Ò±»»÷Ò»´Î
-    /// </summary>
+    [Tooltip("æ­»äº¡é»‘å±UIï¼ˆImageï¼‰")]
+    public Image deathBlackScreenImage;
+
+    [Tooltip("é»‘å±æ·¡å…¥/æ·¡å‡ºæ—¶é—´")]
+    public float blackScreenFadeDuration = 1f;
+
+    [Tooltip("é»‘å±åœç•™æ—¶é—´")]
+    public float blackScreenStayDuration = 2f;
+
+    [Header("Animatorè®¾ç½®")]
+    public ThirdPersonController Controller;
+    public Transform playerModel;
+    public Animator playerAnimator;
+    public string deathTriggerName = "BossDeath";
+    public string rebirthTriggerName = "Rebirth";
+
+    [Header("äº‹ä»¶")]
+    public UnityEvent OnHit;
+    public UnityEvent OnDeath;
+    public UnityEvent OnRespawn;
+
+    private float lastHitTime;
+    private bool isHealing = false;
+    private float damageOverlayAlpha = 0f;
+
+    [Header("Bossæ§åˆ¶å™¨")]
+    public EnemyAttackController bossAttackController;
+    [Tooltip("ç©å®¶é‡ç”ŸåBossç­‰å¾…å¤šä¹…æ‰æ¢å¤æ”»å‡»")]
+    public float bossRespawnDelay = 2f;
+
+    void Update()
+    {
+        // è‡ªåŠ¨å›è¡€é€»è¾‘
+        if (!isDead && currentHits > 0 && !isHealing && Time.time - lastHitTime >= healDelay)
+        {
+            StartCoroutine(HealOverTime());
+        }
+
+        // æ›´æ–°å—ä¼¤ UI é€æ˜åº¦ï¼ˆå¹³æ»‘è¿‡æ¸¡ï¼‰
+        UpdateDamageOverlay();
+    }
+
     public void TakeHit()
     {
         if (isDead) return;
@@ -28,31 +75,159 @@ public class PlayerHealth : MonoBehaviour
         Debug.Log($"{gameObject.name} got hit: {currentHits}/{hitsToDie}");
         OnHit?.Invoke();
 
+        lastHitTime = Time.time;
+        isHealing = false;
+
         if (currentHits >= hitsToDie)
         {
             Die();
         }
     }
 
-    /// <summary>
-    /// ´ïµ½ËÀÍöÌõ¼şÊ±µ÷ÓÃ£¨Ä¿Ç°Ö»´¥·¢ÊÂ¼şÓëÈÕÖ¾£¬¾ßÌåĞ§¹ûÔÚ OnDeath ÀïÅäÖÃ£©
-    /// </summary>
     public void Die()
     {
         if (isDead) return;
         isDead = true;
         Debug.Log($"{gameObject.name} died (hit count reached).");
         OnDeath?.Invoke();
-        // ×¢Òâ£º²»ÒªÔÚÕâÀïÖ±½Ó×öÊÓ¾õ/UIµÄ¾ßÌåÊµÏÖ£¨°´ÄãµÄÒªÇó£©£¬
-        // °ÑÕâĞ©Ğ§¹ûÍ¨¹ı OnDeath ÔÚ Inspector Àï¹ÒÉÏ£¬»òÔÚÏÂÒ»²½ÎÒ°ïÄãÊµÏÖ¡£
+
+        // âœ… æ­»äº¡æ—¶å…ˆæš‚åœBosså¹¶å›æº¯
+        if (bossAttackController != null)
+        {
+            Debug.Log("[DEBUG] Player died! Pausing boss & rewinding.");
+            bossAttackController.CanStartAttack = false; // å¼ºåˆ¶å…³æ‰æ”»å‡»
+            bossAttackController.PauseBoss();
+            bossAttackController.RewindToCheckpoint();
+        }
+
+        if (playerAnimator != null && !string.IsNullOrEmpty(deathTriggerName))
+        {
+            playerAnimator.applyRootMotion = true;
+            playerAnimator.SetTrigger(deathTriggerName);
+            Controller.canMove = false;
+        }
+
+        if (deathBlackScreenImage != null)
+            StartCoroutine(BlackScreenFade());
     }
 
-    /// <summary>
-    /// ÖØÖÃ×´Ì¬£¨±ÈÈçÖØÉúÊ±µ÷ÓÃ£©
-    /// </summary>
     public void ResetHealth()
     {
         isDead = false;
         currentHits = 0;
+        isHealing = false;
+
+        // å—ä¼¤UIæ¢å¤é€æ˜
+        if (damageOverlayImage != null)
+        {
+            Color c = damageOverlayImage.color;
+            c.a = 0f;
+            damageOverlayImage.color = c;
+            damageOverlayAlpha = 0f;
+        }
+
+        Controller.canMove = true;
+
+        OnRespawn?.Invoke();
+    }
+
+    private System.Collections.IEnumerator HealOverTime()
+    {
+        isHealing = true;
+
+        float startHits = currentHits;
+        float elapsed = 0f;
+
+        while (elapsed < healDuration)
+        {
+            if (Time.time - lastHitTime < healDelay)
+            {
+                isHealing = false;
+                yield break;
+            }
+
+            elapsed += Time.deltaTime;
+            float t = elapsed / healDuration;
+            currentHits = Mathf.RoundToInt(Mathf.Lerp(startHits, 0, t));
+            yield return null;
+        }
+
+        currentHits = 0;
+        isHealing = false;
+    }
+
+    private void UpdateDamageOverlay()
+    {
+        if (damageOverlayImage == null) return;
+
+        float targetAlpha = Mathf.Clamp01((float)currentHits / hitsToDie);
+        damageOverlayAlpha = Mathf.Lerp(damageOverlayAlpha, targetAlpha, Time.deltaTime * 5f);
+
+        Color c = damageOverlayImage.color;
+        c.a = damageOverlayAlpha;
+        damageOverlayImage.color = c;
+    }
+
+    private IEnumerator BlackScreenFade()
+    {
+        if (deathBlackScreenImage == null) yield break;
+
+        // æ·¡å…¥
+        float elapsed = 0f;
+        while (elapsed < blackScreenFadeDuration)
+        {
+            elapsed += Time.deltaTime;
+            float t = elapsed / blackScreenFadeDuration;
+            SetImageAlpha(deathBlackScreenImage, t);
+            yield return null;
+        }
+        SetImageAlpha(deathBlackScreenImage, 1f);
+
+        // è§¦å‘Animatoré‡ç”ŸåŠ¨ç”»
+        if (playerAnimator != null && !string.IsNullOrEmpty(rebirthTriggerName))
+        {
+            playerAnimator.applyRootMotion = false;
+            if (playerModel != null)
+            {
+                playerModel.localPosition = Vector3.zero;
+                playerModel.localRotation = Quaternion.identity;
+            }
+            playerAnimator.SetTrigger(rebirthTriggerName);
+        }
+
+        yield return new WaitForSeconds(blackScreenStayDuration);
+
+        ResetHealth();
+
+        // é‡ç½®ç©å®¶ä½ç½®åˆ° checkpoint å¯¹åº”ä½ç½®
+        if (bossAttackController != null)
+        {
+            Vector3 respawnPos = bossAttackController.GetRespawnPositionForCurrentPhase();
+            Controller.transform.position = respawnPos;
+        }
+
+        // âœ… å»¶è¿Ÿååªè®¾ç½®CanStartAttack=trueï¼Œè®©EnemyAttackControllerè‡ªå·±Resume
+        if (bossAttackController != null)
+        {
+            yield return new WaitForSeconds(bossRespawnDelay);
+            bossAttackController.CanStartAttack = true;
+        }
+
+        // æ·¡å‡º
+        elapsed = 0f;
+        while (elapsed < blackScreenFadeDuration)
+        {
+            elapsed += Time.deltaTime;
+            float t = 1f - (elapsed / blackScreenFadeDuration);
+            SetImageAlpha(deathBlackScreenImage, t);
+            yield return null;
+        }
+        SetImageAlpha(deathBlackScreenImage, 0f);
+    }
+    private void SetImageAlpha(Image img, float alpha)
+    {
+        Color c = img.color;
+        c.a = alpha;
+        img.color = c;
     }
 }

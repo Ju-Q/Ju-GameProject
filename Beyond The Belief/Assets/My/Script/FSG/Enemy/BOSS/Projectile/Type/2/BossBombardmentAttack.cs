@@ -27,6 +27,9 @@ public class BossBombardmentAttack : EnemyAttack // 继承 EnemyAttack
 
     private Transform player; // 主角位置
 
+    // 用于在 ResetAttack 时清理提示特效
+    private readonly List<GameObject> activeWarnings = new List<GameObject>();
+
     private void Awake()
     {
         player = GameObject.FindGameObjectWithTag("Player").transform;
@@ -61,13 +64,13 @@ public class BossBombardmentAttack : EnemyAttack // 继承 EnemyAttack
         }
 
         // 先生成提示特效
-        List<GameObject> warnings = new List<GameObject>();
+        activeWarnings.Clear();
         if (warningPrefab != null)
         {
             foreach (var pos in chosenPositions)
             {
                 GameObject warn = Instantiate(warningPrefab, pos.position, pos.rotation);
-                warnings.Add(warn);
+                activeWarnings.Add(warn);
             }
         }
 
@@ -76,11 +79,12 @@ public class BossBombardmentAttack : EnemyAttack // 继承 EnemyAttack
             yield return new WaitForSeconds(warningDuration);
 
         // 销毁提示（如果你希望提示在攻击时消失）
-        foreach (var w in warnings)
+        foreach (var w in activeWarnings)
         {
             if (w != null)
                 Destroy(w);
         }
+        activeWarnings.Clear();
 
         // 生成炮弹
         for (int i = 0; i < chosenPositions.Count; i++)
@@ -107,5 +111,22 @@ public class BossBombardmentAttack : EnemyAttack // 继承 EnemyAttack
             return floor2Positions;
         else // 三楼
             return floor3Positions;
+    }
+
+    /// <summary>
+    /// 重置攻击状态（在Boss回溯时调用）
+    /// </summary>
+    public override void ResetAttack()
+    {
+        // 清理所有还在场上的提示特效
+        foreach (var w in activeWarnings)
+        {
+            if (w != null)
+                Destroy(w);
+        }
+        activeWarnings.Clear();
+
+        // 如果有冷却计时器、延迟协程之类，也可以在这里重置
+        // cooldownTimer = 0f; 之类的
     }
 }

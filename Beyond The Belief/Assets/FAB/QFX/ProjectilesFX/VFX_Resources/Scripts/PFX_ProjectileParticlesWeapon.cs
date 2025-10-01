@@ -14,14 +14,18 @@ public class PFX_ProjectileParticlesWeaponAttack : EnemyAttack
     public float EachFireRate = 0.3f; // 三连发内部每颗子弹间隔
     public int BurstCount = 3;        // 连发次数
     public GameObject ProjectilePrefab;
-    public Transform FirePoint; // 炮弹发射点
+    public Transform FirePoint;       // 炮弹发射点
+    public Transform Player;          // 主角
 
-    public UnityEngine.Transform Player; // 主角
+    // 如果你有冷却计时器/状态，可以放这里
+    private bool isAttacking = false;
 
     public override IEnumerator ExecuteAttack()
     {
         if (Player == null)
             yield break;
+
+        isAttacking = true;
 
         // 内部三连发
         for (int i = 0; i < BurstCount; i++)
@@ -47,5 +51,22 @@ public class PFX_ProjectileParticlesWeaponAttack : EnemyAttack
 
         // 三连发之间的间隔
         yield return new WaitForSeconds(FireRate);
+
+        isAttacking = false;
     }
+
+    /// <summary>
+    /// 当Boss回溯/重生时调用，停止粒子和重置状态
+    /// </summary>
+    public override void ResetAttack()
+    {
+        foreach (var ps in ParticleSystems)
+        {
+            ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+        }
+
+        // 如果有自己的冷却、状态变量，也在这里重置
+        // cooldownTimer = 0f;
+    }
+
 }

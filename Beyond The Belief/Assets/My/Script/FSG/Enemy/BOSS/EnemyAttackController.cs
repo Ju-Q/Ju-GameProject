@@ -1,62 +1,161 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 
 [System.Serializable]
 public class EnemyAttackPhase
 {
-    public string PhaseName;                        // ½×¶ÎÃû×Ö£¨¿ÉÑ¡£©
-    public List<EnemyAttack> AttacksInThisPhase;    // ¸Ã½×¶ÎµÄËùÓĞ¹¥»÷
-    public float PhaseDuration = 5f;               // ½×¶Î³ÖĞøÊ±¼ä
-    public float IntervalAfterPhase = 2f;          // ½×¶Î½áÊøºóµ½ÏÂÒ»½×¶ÎµÄ¼ä¸ôÊ±¼ä
+    public string PhaseName;
+    public List<EnemyAttack> AttacksInThisPhase;
+    public float PhaseDuration = 5f;
+    public float IntervalAfterPhase = 2f;
+    public bool IsCheckpoint = false;
+}
+
+[System.Serializable]
+public class PhaseLoopCondition
+{
+    [Header("å¾ªç¯èŒƒå›´ (åŒ…å«å¼€å§‹å’Œç»“æŸ)")]
+    public int LoopStartIndex = 0;    // å¾ªç¯èµ·ç‚¹é˜¶æ®µ
+    public int LoopEndIndex = 0;      // å¾ªç¯ç»ˆç‚¹é˜¶æ®µ
+
+    [Header("é€€å‡ºå¾ªç¯æ‰€éœ€ç ´åæ ¸å¿ƒæ•°")]
+    public int RequiredDestroyedCores = 1;
 }
 
 public class EnemyAttackController : MonoBehaviour
 {
-    public List<EnemyAttackPhase> AttackPhases;     // ËùÓĞ½×¶ÎÁĞ±í
-    public int CurrentPhaseIndex { get; private set; } = -1;  // µ±Ç°½×¶ÎË÷Òı£¨-1±íÊ¾Î´¿ªÊ¼£©
+    [Header("Bossé˜¶æ®µåˆ—è¡¨")]
+    public List<EnemyAttackPhase> AttackPhases;
+
+    [Header("é˜¶æ®µå›æº¯è®¾ç½®")]
+    public List<int> CheckpointPhaseIndices = new List<int>();
+
+    [Header("Checkpointä½ç½®")]
+    public List<Transform> CheckpointRespawnPoints = new List<Transform>();
+
+    [Header("å¾ªç¯è®¾ç½®")]
+    public List<PhaseLoopCondition> LoopConditions = new List<PhaseLoopCondition>();
+
+    [Header("æ§åˆ¶Bossæ˜¯å¦å¯ä»¥å¼€å§‹æ”»å‡»")]
+    public bool CanStartAttack = false;
+
+    [Header("è°ƒè¯•")]
+    public bool enableDebugLogs = true;
+
+    public int CurrentPhaseIndex { get; private set; } = -1;
     public EnemyAttackPhase CurrentPhase =>
         (CurrentPhaseIndex >= 0 && CurrentPhaseIndex < AttackPhases.Count)
-        ? AttackPhases[CurrentPhaseIndex] : null;   // ·½±ãÍâ²¿»ñÈ¡µ±Ç°½×¶Î¶ÔÏó
+        ? AttackPhases[CurrentPhaseIndex] : null;
+    public bool IsPaused { get; private set; } = false;
+
+    private Coroutine phasesCoroutine;
+    private List<Coroutine> runningAttacks = new List<Coroutine>();
+    private bool isRewinding = false;
+    private bool previousCanStartAttack = false;
+    private bool isDead = false; //Bossæ˜¯å¦æ­»äº¡
+
+    private BossController bossController; // éœ€è¦ç”¨æ¥æŸ¥è¯¢æ ¸å¿ƒç ´åæ•°
 
     private void Start()
     {
-        StartCoroutine(PerformPhases());
+        previousCanStartAttack = CanStartAttack;
+        bossController = GetComponent<BossController>();
     }
 
-    private IEnumerator PerformPhases()
+    private void Update()
     {
-        for (int i = 0; i < AttackPhases.Count; i++)
+        // false -> true
+        if (!previousCanStartAttack && CanStartAttack)
         {
-            CurrentPhaseIndex = i; // ÉèÖÃµ±Ç°½×¶ÎË÷Òı
+            if (IsPaused)
+            {
+                ResumeBoss(CurrentPhaseIndex >= 0 ? CurrentPhaseIndex : 0);
+            }
+            else
+            {
+                StartPhasesFromIndex(CurrentPhaseIndex >= 0 ? CurrentPhaseIndex : 0);
+            }
+        }
+        // true -> false
+        else if (previousCanStartAttack && !CanStartAttack)
+        {
+            PauseBoss();
+        }
+
+        previousCanStartAttack = CanStartAttack;
+    }
+
+    private IEnumerator PerformPhases(int startIndex)
+    {
+        for (int i = startIndex; i < AttackPhases.Count; i++)
+        {
+            CurrentPhaseIndex = i;
             EnemyAttackPhase phase = AttackPhases[i];
 
-            // Æô¶¯¸Ã½×¶ÎµÄ¹¥»÷Ğ­³Ì
-            List<Coroutine> runningAttacks = new List<Coroutine>();
+            if (enableDebugLogs)
+                Debug.Log($"[Boss] Enter Phase {i}: {phase.PhaseName}");
+
+            // å¯åŠ¨è¯¥é˜¶æ®µæ”»å‡»
+            runningAttacks.Clear();
             foreach (var attack in phase.AttacksInThisPhase)
             {
                 Coroutine c = StartCoroutine(RepeatAttackInPhase(attack, phase.PhaseDuration));
                 runningAttacks.Add(c);
             }
 
-            // µÈ´ı½×¶ÎÊ±¼ä
             yield return new WaitForSeconds(phase.PhaseDuration);
 
-            // Í£Ö¹ËùÓĞ¹¥»÷Ğ­³Ì£¨½áÊøµ±Ç°½×¶Î£©
-            foreach (var c in runningAttacks)
-            {
-                if (c != null) StopCoroutine(c);
-            }
+            StopAllAttackCoroutines();
 
-            // ½×¶Î¼ä¸ô
             if (phase.IntervalAfterPhase > 0f)
             {
-                CurrentPhaseIndex = -1; // ¼ä¸ôÆÚ²»ËãÔÚÈÎºÎ½×¶Î
+                CurrentPhaseIndex = -1;
                 yield return new WaitForSeconds(phase.IntervalAfterPhase);
             }
+
+            if (!CanStartAttack)
+                yield break;
+
+            // âœ… å¾ªç¯åˆ¤å®š
+            // âœ… å¾ªç¯åˆ¤å®šï¼ˆåªåœ¨å¾ªç¯åŒºæœ€åä¸€ä¸ªé˜¶æ®µæ‰æ£€æŸ¥ï¼‰
+            PhaseLoopCondition loop = GetLoopForPhase(i);
+            if (loop != null && i == loop.LoopEndIndex)
+            {
+                int destroyedCores = bossController != null ? bossController.DestroyedCoresCount : 0;
+
+                if (destroyedCores < loop.RequiredDestroyedCores)
+                {
+                    // æ²¡æœ‰è¾¾åˆ°æ¡ä»¶ï¼Œå›åˆ°å¾ªç¯èµ·ç‚¹
+                    if (enableDebugLogs)
+                        Debug.Log($"[Boss] Not enough cores destroyed ({destroyedCores}/{loop.RequiredDestroyedCores}), looping back to phase {loop.LoopStartIndex}");
+
+                    i = loop.LoopStartIndex - 1; // ä¸‹ä¸€è½®ä¼šå˜æˆ LoopStartIndex
+                    continue;
+                }
+                else
+                {
+                    if (enableDebugLogs)
+                        Debug.Log($"[Boss] Required cores destroyed ({destroyedCores}), breaking loop at phase {i}");
+                }
+            }
+
         }
 
-        CurrentPhaseIndex = -1; // ËùÓĞ½×¶ÎÍê³É
+        CurrentPhaseIndex = -1;
+
+        if (enableDebugLogs)
+            Debug.Log("[Boss] All phases completed.");
+    }
+
+    private PhaseLoopCondition GetLoopForPhase(int phaseIndex)
+    {
+        foreach (var loop in LoopConditions)
+        {
+            if (phaseIndex >= loop.LoopStartIndex && phaseIndex <= loop.LoopEndIndex)
+                return loop;
+        }
+        return null;
     }
 
     private IEnumerator RepeatAttackInPhase(EnemyAttack attack, float duration)
@@ -64,9 +163,148 @@ public class EnemyAttackController : MonoBehaviour
         float timer = 0f;
         while (timer < duration)
         {
-            yield return attack.ExecuteAttack(); // ÄÚ²¿ÒÑ´¦ÀíÀäÈ´
+            yield return attack.ExecuteAttack();
             yield return null;
             timer += Time.deltaTime;
+
+            if (!CanStartAttack)
+                yield break;
         }
+    }
+
+    private void StopAllAttackCoroutines()
+    {
+        foreach (var c in runningAttacks)
+        {
+            if (c != null)
+                StopCoroutine(c);
+        }
+        runningAttacks.Clear();
+
+        // âŒ ä¸å†åœ¨è¿™é‡Œ ResetAttack()
+        // å­å¼¹ä¸ä¼šè¢«æ¸…ç©º
+    }
+
+    // æ–°å¢ï¼šçœŸæ­£éœ€è¦æ¸…ç†æ”»å‡»çš„æ—¶å€™æ‰è°ƒç”¨
+    private void ResetAllAttacks()
+    {
+        foreach (var phase in AttackPhases)
+        {
+            foreach (var attack in phase.AttacksInThisPhase)
+            {
+                if (attack != null)
+                {
+                    attack.ResetAttack();
+                    if (enableDebugLogs)
+                        Debug.Log($"[Boss] ResetAttack called for {attack.name}");
+                }
+            }
+        }
+    }
+
+
+    public void StartPhasesFromIndex(int index)
+    {
+        if (enableDebugLogs)
+            Debug.Log($"[Boss] StartPhasesFromIndex called with index {index}");
+
+        if (phasesCoroutine != null)
+            StopCoroutine(phasesCoroutine);
+
+        StopAllAttackCoroutines();
+
+        phasesCoroutine = StartCoroutine(PerformPhases(index));
+    }
+
+    public void RewindToCheckpoint()
+    {
+        if (isRewinding) return;
+        isRewinding = true;
+
+        // âš ï¸ æ–°å¢ï¼šå…ˆæš‚åœ
+        PauseBoss();
+
+        int rewindIndex = GetCheckpointIndexForCurrentPhase();
+        if (enableDebugLogs)
+            Debug.Log($"[Boss] Rewinding to checkpoint phase {rewindIndex}");
+
+        // åªé‡ç½®å½“å‰é˜¶æ®µç´¢å¼•ï¼Œä¸ç›´æ¥å¼€å§‹æ”»å‡»
+        CurrentPhaseIndex = rewindIndex;
+
+        isRewinding = false;
+    }
+
+    private int GetCheckpointIndexForCurrentPhase()
+    {
+        if (CheckpointPhaseIndices == null || CheckpointPhaseIndices.Count == 0)
+            return 0;
+
+        int result = CheckpointPhaseIndices[0];
+        for (int i = 0; i < CheckpointPhaseIndices.Count; i++)
+        {
+            if (CheckpointPhaseIndices[i] <= CurrentPhaseIndex)
+                result = CheckpointPhaseIndices[i];
+        }
+        return result;
+    }
+
+    public void PauseBoss()
+    {
+        if (IsPaused) return;
+        IsPaused = true;
+        StopAllAttackCoroutines();
+        if (phasesCoroutine != null)
+            StopCoroutine(phasesCoroutine);
+        if (enableDebugLogs)
+            Debug.Log("[Boss] Paused");
+    }
+
+    public void ResumeBoss(int startPhaseIndex = -1, float delay = 0f)
+    {
+        if (!CanStartAttack)
+        {
+            if (enableDebugLogs) Debug.Log("[Boss] ResumeBoss skipped because CanStartAttack=false");
+            return;
+        }
+
+        if (!IsPaused) return;
+        IsPaused = false;
+
+        StartCoroutine(ResumeBossWithDelay(startPhaseIndex, delay));
+
+        if (enableDebugLogs)
+            Debug.Log("[Boss] Resuming with delay: " + delay + "s");
+    }
+
+    private IEnumerator ResumeBossWithDelay(int startPhaseIndex, float delay)
+    {
+        if (delay > 0f)
+            yield return new WaitForSeconds(delay);
+
+        if (startPhaseIndex >= 0)
+            StartPhasesFromIndex(startPhaseIndex);
+        else
+            StartPhasesFromIndex(CurrentPhaseIndex >= 0 ? CurrentPhaseIndex : 0);
+    }
+
+    public Vector3 GetRespawnPositionForCurrentPhase()
+    {
+        int checkpointIndex = GetCheckpointIndexForCurrentPhase();
+        int listIndex = CheckpointPhaseIndices.IndexOf(checkpointIndex);
+
+        if (listIndex >= 0 && listIndex < CheckpointRespawnPoints.Count)
+            return CheckpointRespawnPoints[listIndex].position;
+
+        return Vector3.zero;
+    }
+
+    public void OnBossDeath()
+    {
+        if (isDead) return;
+        isDead = true;
+
+        PauseBoss(); // åœæ­¢ä¸€åˆ‡æ”»å‡»ä¸é˜¶æ®µ
+        if (enableDebugLogs)
+            Debug.Log("[Boss] AttackController stopped because Boss is dead.");
     }
 }

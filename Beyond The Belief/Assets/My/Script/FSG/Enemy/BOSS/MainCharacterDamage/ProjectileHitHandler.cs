@@ -1,24 +1,28 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 
 public class ProjectileHitHandler : MonoBehaviour
 {
+    [Header("ç©å®¶å‘½ä¸­å¤„ç†")]
+    public bool affectPlayer = true;   // æ˜¯å¦å¯¹ç©å®¶ç”Ÿæ•ˆ
+
     public void HandleHit(GameObject target)
     {
-        if (!target.CompareTag("Player"))
+        // --- ç©å®¶é€»è¾‘ ---
+        if (affectPlayer && target.CompareTag("Player"))
+        {
+            var ph = target.GetComponent<PlayerHealth>();
+            if (ph != null)
+            {
+                ph.TakeHit(); // ç©å®¶æ‰£è¡€ï¼Œä½†ä¸ç”Ÿæˆç‰¹æ•ˆ
+            }
             return;
-
-        // ÓÅÏÈ²éÕÒÍæ¼ÒÉÏµÄ PlayerHealth ×é¼ş²¢µ÷ÓÃ
-        var ph = target.GetComponent<PlayerHealth>();
-        if (ph != null)
-        {
-            ph.TakeHit();
         }
-        else
+
+        // --- å¯ç ´åç‰©ä½“é€»è¾‘ ---
+        var destructible = target.GetComponent<DestructibleObject>();
+        if (destructible != null)
         {
-            // ±¸ÓÃ·½°¸£ºÈç¹ûÍü¼Ç¹Ò×é¼ş£¬¸ø¸öÌáÊ¾²¢ÁÙÊ±Ìí¼ÓÒ»¸ö£¨ÍÆ¼öÔÚ±à¼­Æ÷ÀïÊÖ¶¯¹Ò£©
-            Debug.LogWarning("ProjectileHitHandler: PlayerHealth component not found on target. Adding one at runtime with default settings.");
-            ph = target.AddComponent<PlayerHealth>();
-            ph.TakeHit();
+            destructible.TakeHit(); // ç‰¹æ•ˆäº¤ç»™ç‰©ä½“è‡ªå·±å†³å®š
         }
     }
 }
