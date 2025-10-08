@@ -5,6 +5,9 @@ public class BossCore : MonoBehaviour
     [Header("是否自动查找Boss")]
     public bool autoFindBoss = true;
 
+    [Header("核心类型")]
+    public bool isFinalCore = false; // 标记是否为最终核心
+
     private bool isDestroyed = false;
     private BossController bossController;
 
@@ -23,7 +26,16 @@ public class BossCore : MonoBehaviour
         // 注册自己
         if (bossController != null)
         {
-            bossController.RegisterCore(this);
+            if (isFinalCore)
+            {
+                // 最终核心需要特殊注册
+                bossController.finalCore = this;
+            }
+            else
+            {
+                // 阶段核心正常注册
+                bossController.RegisterPhaseCore(this);
+            }
         }
         else
         {
@@ -50,4 +62,29 @@ public class BossCore : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// 重置核心状态（用于Boss醒来时恢复）
+    /// </summary>
+    public void ResetCore()
+    {
+        isDestroyed = false;
+        gameObject.SetActive(true);
+
+        // 可以在这里添加重置特效、恢复材质等逻辑
+        //Debug.Log($"核心 {name} 已重置");
+    }
+
+    /// <summary>
+    /// 获取核心是否已被破坏
+    /// </summary>
+    public bool IsDestroyed => isDestroyed;
+
+    /// <summary>
+    /// 强制设置核心状态（用于调试）
+    /// </summary>
+    public void SetDestroyed(bool destroyed)
+    {
+        isDestroyed = destroyed;
+        gameObject.SetActive(!destroyed);
+    }
 }

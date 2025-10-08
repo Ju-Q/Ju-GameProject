@@ -1,25 +1,29 @@
-using UnityEngine;
+ï»¿using UnityEngine;
+using System;
 
 public class DestructibleObject : MonoBehaviour
 {
-    [Header("¿ÉÆÆ»µÎïÌåÉèÖÃ")]
-    public int hitsToDestroy = 3;         // ĞèÒªÃüÖĞ¼¸´Î²Å»á±»Ïú»Ù
-    public GameObject hitEffectPrefab;    // ÊÜ»÷Ê±µÄÌØĞ§£¨±ÈÈç»ğ»¨£©
-    public GameObject destroyEffect;      // Ïú»ÙÊ±µÄÌØĞ§
+    [Header("å¯ç ´åç‰©ä½“è®¾ç½®")]
+    public int hitsToDestroy = 3;         // éœ€è¦å‘½ä¸­å‡ æ¬¡æ‰ä¼šè¢«é”€æ¯
+    public GameObject hitEffectPrefab;    // å—å‡»æ—¶çš„ç‰¹æ•ˆï¼ˆæ¯”å¦‚ç«èŠ±ï¼‰
+    public GameObject destroyEffect;      // é”€æ¯æ—¶çš„ç‰¹æ•ˆ
 
     private int currentHits = 0;
+
+    // âœ… å®šä¹‰äº‹ä»¶ï¼Œå½“ç‰©ä½“è¢«é”€æ¯æ—¶é€šçŸ¥å¤–éƒ¨
+    public event Action<DestructibleObject> OnDestroyed;
 
     public void TakeHit()
     {
         currentHits++;
 
-        // Ã¿´ÎÊÜ»÷Ê±²¥·ÅÊÜ»÷ÌØĞ§
+        // æ¯æ¬¡å—å‡»æ—¶æ’­æ”¾å—å‡»ç‰¹æ•ˆ
         if (hitEffectPrefab != null)
         {
             Instantiate(hitEffectPrefab, transform.position, Quaternion.identity);
         }
 
-        Debug.Log($"{name} ±»»÷ÖĞ {currentHits}/{hitsToDestroy}");
+        Debug.Log($"{name} è¢«å‡»ä¸­ {currentHits}/{hitsToDestroy}");
 
         if (currentHits >= hitsToDestroy)
         {
@@ -27,6 +31,10 @@ public class DestructibleObject : MonoBehaviour
             {
                 Instantiate(destroyEffect, transform.position, Quaternion.identity);
             }
+
+            // âœ… é€šçŸ¥å¤–éƒ¨ï¼šæˆ‘è¢«é”€æ¯äº†
+            OnDestroyed?.Invoke(this);
+
             Destroy(gameObject);
         }
     }

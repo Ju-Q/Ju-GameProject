@@ -1,4 +1,4 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 using System.Collections;
 using StarterAssets;
 
@@ -7,27 +7,31 @@ public class CameraTriggerLook : MonoBehaviour
     public Transform npc;
     public Camera mainCamera;
     public float lookDuration = 2.0f;
-    public float moveTime = 1.0f; // ÉãÏñÍ·ÒÆ¶¯µ½Ä¿±êÎ»ÖÃµÄ×ÜÊ±¼ä
+    public float moveTime = 1.0f; // æ‘„åƒå¤´ç§»åŠ¨åˆ°ç›®æ ‡ä½ç½®çš„æ€»æ—¶é—´
     public Vector3 offsetFromNPC = new Vector3(0, 2, -5);
 
     [Header("Camera Move Curve")]
-    public AnimationCurve moveCurve = AnimationCurve.EaseInOut(0, 0, 1, 1); // Ä¬ÈÏ»ºÈë»º³ö
+    public AnimationCurve moveCurve = AnimationCurve.EaseInOut(0, 0, 1, 1); // é»˜è®¤ç¼“å…¥ç¼“å‡º
+
+    [Header("Rotation Settings")]
+    public bool useCustomRotation = false;  // âœ… æ˜¯å¦ä½¿ç”¨è‡ªå®šä¹‰æ—‹è½¬
+    public Vector3 customEulerAngles;       // âœ… è‡ªå®šä¹‰æ¬§æ‹‰è§’ï¼ˆInspectoré‡Œå¯ä»¥å¡«ï¼‰
 
     private bool hasTriggered = false;
     private Vector3 savedLocalPosition;
     private Quaternion savedLocalRotation;
     private Transform cameraParent;
-    private ThirdPersonController playerController; // ÒıÓÃÍæ¼Ò¿ØÖÆ½Å±¾
+    private ThirdPersonController playerController; // å¼•ç”¨ç©å®¶æ§åˆ¶è„šæœ¬
 
     void Start()
     {
         cameraParent = mainCamera.transform.parent;
 
-        // ÕÒµ½Íæ¼Ò¿ØÖÆÆ÷£¨¼ÙÉèÉãÏñ»úµÄ¸¸ÎïÌå¾ÍÊÇÍæ¼Ò£©
+        // æ‰¾åˆ°ç©å®¶æ§åˆ¶å™¨ï¼ˆå‡è®¾æ‘„åƒæœºçš„çˆ¶ç‰©ä½“å°±æ˜¯ç©å®¶ï¼‰
         playerController = cameraParent.GetComponent<ThirdPersonController>();
         if (playerController == null)
         {
-            Debug.LogWarning("Î´ÕÒµ½ ThirdPersonController£¬ÇëÊÖ¶¯Ö¸¶¨»ò¼ì²é¸¸ÎïÌå¡£");
+            Debug.LogWarning("æœªæ‰¾åˆ° ThirdPersonControllerï¼Œè¯·æ‰‹åŠ¨æŒ‡å®šæˆ–æ£€æŸ¥çˆ¶ç‰©ä½“ã€‚");
         }
     }
 
@@ -45,22 +49,26 @@ public class CameraTriggerLook : MonoBehaviour
 
     IEnumerator LookAtNPC()
     {
-        // ½ûÓÃÍæ¼ÒÒÆ¶¯
+        // ç¦ç”¨ç©å®¶ç§»åŠ¨
         if (playerController != null)
             playerController.canMove = false;
 
         mainCamera.transform.SetParent(null);
 
         Vector3 targetPosition = npc.position + offsetFromNPC;
-        Quaternion targetRotation = Quaternion.LookRotation(npc.position - targetPosition);
 
-        // --- Step 1: ÒÆ¶¯µ½ NPC ---
+        // âœ… æ ¹æ®è®¾ç½®å†³å®šæ—‹è½¬æ–¹å¼
+        Quaternion targetRotation = useCustomRotation
+            ? Quaternion.Euler(customEulerAngles)
+            : Quaternion.LookRotation(npc.position - targetPosition);
+
+        // --- Step 1: ç§»åŠ¨åˆ° NPC ---
         yield return StartCoroutine(MoveCamera(mainCamera.transform.position, targetPosition,
                                                mainCamera.transform.rotation, targetRotation));
 
         yield return new WaitForSeconds(lookDuration);
 
-        // --- Step 2: ·µ»ØÍæ¼Ò ---
+        // --- Step 2: è¿”å›ç©å®¶ ---
         Vector3 targetReturnPosition = cameraParent.TransformPoint(savedLocalPosition);
         Quaternion targetReturnRotation = cameraParent.rotation * savedLocalRotation;
 
@@ -71,7 +79,7 @@ public class CameraTriggerLook : MonoBehaviour
         mainCamera.transform.localPosition = savedLocalPosition;
         mainCamera.transform.localRotation = savedLocalRotation;
 
-        // ÔÊĞíÍæ¼ÒÒÆ¶¯
+        // å…è®¸ç©å®¶ç§»åŠ¨
         if (playerController != null)
             playerController.canMove = true;
     }

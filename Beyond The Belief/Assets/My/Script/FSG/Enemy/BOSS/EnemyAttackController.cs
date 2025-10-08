@@ -307,4 +307,43 @@ public class EnemyAttackController : MonoBehaviour
         if (enableDebugLogs)
             Debug.Log("[Boss] AttackController stopped because Boss is dead.");
     }
+
+    // 新增：Boss晕厥时调用
+    public void OnBossStun()
+    {
+        if (enableDebugLogs)
+            Debug.Log("[Boss] Boss stunned, pausing attack controller");
+
+        // 暂停Boss攻击
+        PauseBoss();
+
+        // 可以选择性地重置所有攻击状态
+        ResetAllAttacks();
+    }
+
+    // 新增：Boss醒来时调用
+    public void OnBossWakeUp()
+    {
+        if (enableDebugLogs)
+            Debug.Log("[Boss] Boss woke up, attack controller remains paused until CanStartAttack=true");
+
+        // Boss醒来后，攻击控制器保持暂停状态
+        // 实际的恢复由CanStartAttack=true触发
+        // 这里可以添加一些醒来时的特殊逻辑
+    }
+
+    // 确保OnBossDeath方法也存在（你已经有这个了，但为了完整性再确认一下）
+    /*public void OnBossDeath()
+    {
+        if (isDead) return;
+        isDead = true;
+
+        PauseBoss(); // 停止一切攻击与阶段
+        ResetAllAttacks(); // 清理所有攻击状态
+
+        if (enableDebugLogs)
+            Debug.Log("[Boss] AttackController stopped because Boss is dead.");
+    }*/
+
+
 }

@@ -2,53 +2,36 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class SequentialActivator : MonoBehaviour
+public class SequentialActivator : EnemyAttack
 {
     [Header("需要依次开启的物体列表")]
     public List<GameObject> objectsToActivate = new List<GameObject>();
 
-    [Header("每个物体之间的延迟（秒）")]
-    public float interval = 0.5f;
+    private int currentIndex = 0; // 当前下一个要激活的物体索引
 
-    private bool hasActivatedAll = false; // ✅ 所有物体是否已经开启过
-
-    /// <summary>
-    /// 外部调用：开始依次开启物体
-    /// </summary>
-    public void ActivateSequentially()
+    public override IEnumerator ExecuteAttack()
     {
-        if (hasActivatedAll) return; // 已经开启过就不再执行
-        StartCoroutine(ActivateCoroutine());
-    }
-
-    private IEnumerator ActivateCoroutine()
-    {
-        for (int i = 0; i < objectsToActivate.Count; i++)
+        // 找到下一个未激活物体
+        while (currentIndex < objectsToActivate.Count)
         {
-            GameObject obj = objectsToActivate[i];
+            GameObject obj = objectsToActivate[currentIndex];
+            currentIndex++; // 索引推进，不管是否激活过
+
             if (obj != null && !obj.activeSelf)
             {
                 obj.SetActive(true);
                 Debug.Log($"[SequentialActivator] 激活 {obj.name}");
+                break; // 每次 ExecuteAttack 只激活一个
             }
-
-            // 等待间隔
-            yield return new WaitForSeconds(interval);
         }
 
-        hasActivatedAll = true; // 所有物体已经开启过
+        yield return null;
     }
 
-    /// <summary>
-    /// 可选：重置，允许再次调用
-    /// </summary>
-    public void ResetActivator()
+    // 保持物体状态，不自动关闭，只重置索引用于下一次阶段调用
+    public override void ResetAttack()
     {
-        hasActivatedAll = false;
-        foreach (var obj in objectsToActivate)
-        {
-            if (obj != null)
-                obj.SetActive(false);
-        }
+        currentIndex = 0;
+        //Debug.Log("[SequentialActivator] 索引已重置，但物体保持开启状态");
     }
 }

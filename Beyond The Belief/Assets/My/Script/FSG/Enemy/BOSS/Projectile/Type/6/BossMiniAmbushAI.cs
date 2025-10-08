@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 using UnityEngine.AI;
-using System.Collections;   // 🔹 必须有这一行，支持 IEnumerator
+using System.Collections;
 
 public class BossMiniAmbushAI : MonoBehaviour
 {
@@ -27,11 +27,16 @@ public class BossMiniAmbushAI : MonoBehaviour
     [Header("血量系统")]
     public PlayerHealth playerHealth; // 你的血量脚本（内部有黑屏）
 
+    [Header("死亡设置")]
+    public float deathSinkDuration = 2f; // 下降到地底的持续时间
+    public string deathTrigger = "Die"; // 死亡动画触发器名称
+
     private Vector3 ambushStartPosition;
     private Quaternion ambushStartRotation;
     private bool isWakingUp = false;
     private bool isAmbushActive = false;
     private bool canCatchPlayer = true;
+    private bool isAlive = true; // 添加存活状态
 
     void Start()
     {
@@ -48,10 +53,13 @@ public class BossMiniAmbushAI : MonoBehaviour
         }
 
         canCatchPlayer = true;
+        isAlive = true; // 初始化为存活状态
     }
 
     void Update()
     {
+        if (!isAlive) return; // 如果死亡，不执行任何更新逻辑
+
         if (!isAmbushActive || isWakingUp || player == null || !canCatchPlayer)
             return;
 
@@ -68,16 +76,89 @@ public class BossMiniAmbushAI : MonoBehaviour
             agent.SetDestination(player.position);
     }
 
+    // 添加触发器检测方法
+    void OnTriggerEnter(Collider other)
+    {
+        if (!isAlive) return; // 如果已经死亡，不再处理触发
+
+        // 检测是否碰到技能触发器
+        if (other.CompareTag("SkillTrigger"))
+        {
+            Die();
+        }
+    }
+
+    // 敌人死亡方法
+    public void Die()
+    {
+        if (!isAlive) return;
+
+        isAlive = false;
+        canCatchPlayer = false;
+
+        // 停止所有协程
+        StopAllCoroutines();
+
+        // 停止导航
+        if (agent != null && agent.enabled)
+        {
+            agent.isStopped = true;
+            agent.enabled = false;
+        }
+
+        // 播放死亡动画
+        if (enemyAnimator != null)
+        {
+            // 重置所有可能的动画状态
+            enemyAnimator.ResetTrigger("Attack");
+            enemyAnimator.ResetTrigger("Wake");
+            enemyAnimator.SetBool("isWalking", false);
+            enemyAnimator.SetBool("isRunning", false);
+
+            // 触发死亡动画
+            enemyAnimator.SetTrigger(deathTrigger);
+        }
+
+        // 开始下降到地底的协程
+        StartCoroutine(DeathSinkRoutine());
+    }
+
+    // 死亡后下降到地底的协程
+    private IEnumerator DeathSinkRoutine()
+    {
+        // 等待死亡动画播放一段时间（可选）
+        yield return new WaitForSeconds(0.5f);
+
+        float timer = 0f;
+        Vector3 startPosition = transform.position;
+        Vector3 targetPosition = startPosition - Vector3.up * 2f; // 下降2个单位到地底
+
+        // 逐渐下降到地底
+        while (timer < deathSinkDuration)
+        {
+            timer += Time.deltaTime;
+            float progress = timer / deathSinkDuration;
+            transform.position = Vector3.Lerp(startPosition, targetPosition, progress);
+            yield return null;
+        }
+
+        // 完全下降到地底后，可以销毁敌人或设置为非激活
+        gameObject.SetActive(false);
+
+        // 或者如果你想要重置而不是销毁，可以调用：
+        // ResetAmbush();
+    }
+
     public void ActivateAmbush()
     {
-        if (isAmbushActive) return;
+        if (isAmbushActive || !isAlive) return;
 
         isAmbushActive = true;
         canCatchPlayer = false;
         StartCoroutine(AmbushRoutine());
     }
 
-    private System.Collections.IEnumerator AmbushRoutine()
+    private IEnumerator AmbushRoutine()
     {
         yield return new WaitForSeconds(ambushDelay);
 
@@ -108,6 +189,8 @@ public class BossMiniAmbushAI : MonoBehaviour
 
     private void CatchPlayer()
     {
+        if (!isAlive) return;
+
         canCatchPlayer = false;
 
         // 播放攻击动画
@@ -130,7 +213,6 @@ public class BossMiniAmbushAI : MonoBehaviour
         StartCoroutine(DelayedResetAmbush(1.0f)); // 根据攻击动画长度调整时间
     }
 
-
     private IEnumerator DelayedResetAmbush(float delay)
     {
         yield return new WaitForSeconds(delay);
@@ -138,22 +220,11 @@ public class BossMiniAmbushAI : MonoBehaviour
         ResetAmbush();
     }
 
-
-
-    private System.Collections.IEnumerator DelayedKillAndReset(float delay)
-    {
-        yield return new WaitForSeconds(delay);
-
-        // 玩家死亡（PlayerHealth自己处理黑屏）
-        if (playerHealth != null)
-            playerHealth.Die();
-
-        // 重置敌人
-        ResetAmbush();
-    }
-
     private void ResetAmbush()
     {
+        // 如果敌人已经死亡，不重置
+        if (!isAlive) return;
+
         // 回埋伏点
         transform.position = ambushStartPosition;
         transform.rotation = ambushStartRotation;
@@ -181,11 +252,9 @@ public class BossMiniAmbushAI : MonoBehaviour
         canCatchPlayer = true;
     }
 
-
-
     private void RotateTowardsPlayer()
     {
-        if (player == null) return;
+        if (player == null || !isAlive) return;
         Vector3 direction = (player.position - transform.position).normalized;
         if (direction.sqrMagnitude > 0.01f)
         {
