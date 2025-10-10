@@ -30,13 +30,18 @@ public class BossFollowPlayer : MonoBehaviour
     public float stunLiftDuration = 1.0f;
     public float stunReturnDuration = 0.8f;
 
+    [Header("激活控制")]
+    [Tooltip("是否允许Boss开始跟随玩家")]
+    public bool isActive = false; // 默认 false，未触发
+
     // 内部状态
     private bool heightLocked = false;
     private float lockedHeight;
     private bool isInStunMode = false;
     private Vector3 preStunPosition;
     private Coroutine stunMovementCoroutine;
-    private float lockedRadius; // ✅ 新增：锁定楼层的半径
+    private float lockedRadius; // 锁定楼层的半径
+
     // 属性
     public bool IsHeightLocked => heightLocked;
     public float CurrentLockedHeight => lockedHeight;
@@ -50,6 +55,7 @@ public class BossFollowPlayer : MonoBehaviour
 
     private void Update()
     {
+        if (!isActive) return; // ✅ 未激活，跳过
         if (isInStunMode) return;
         if (bossController != null && (bossController.IsStunned || bossController.IsDead)) return;
 
@@ -79,7 +85,7 @@ public class BossFollowPlayer : MonoBehaviour
         if (!heightLocked && Mathf.Abs(transform.position.y - GetFloorHeight(lockAtFloorIndex)) <= heightLockTolerance)
         {
             lockedHeight = GetFloorHeight(lockAtFloorIndex);
-            lockedRadius = GetRadiusByFloorIndex(lockAtFloorIndex); // ✅ 锁定半径
+            lockedRadius = GetRadiusByFloorIndex(lockAtFloorIndex); // 锁定半径
             heightLocked = true;
         }
 
@@ -88,7 +94,8 @@ public class BossFollowPlayer : MonoBehaviour
         transform.LookAt(lookPos);
     }
 
-    // ✅ 新增方法：通过楼层索引获取半径
+    // ========== 获取楼层半径和高度 ==========
+
     private float GetRadiusByFloorIndex(int floorIndex)
     {
         floorIndex = Mathf.Clamp(floorIndex, 0, floorRadiusList.Count - 1);
@@ -134,9 +141,7 @@ public class BossFollowPlayer : MonoBehaviour
         return floorRadiusList[floorIndex];
     }
 
-    // ===============================
-    // 公共接口：晕厥开始/结束
-    // ===============================
+    // ========== 晕厥逻辑 ==========
 
     public void OnBossStunStart()
     {
@@ -196,11 +201,15 @@ public class BossFollowPlayer : MonoBehaviour
         isInStunMode = false;
     }
 
-    // ===============================
-    // 可选：外部控制锁定
-    // ===============================
+    // ========== 公共接口 ==========
+
     public void SetHeightLocked(bool locked)
     {
         heightLocked = locked;
+    }
+
+    public void ActivateBossFollow()
+    {
+        isActive = true;
     }
 }
