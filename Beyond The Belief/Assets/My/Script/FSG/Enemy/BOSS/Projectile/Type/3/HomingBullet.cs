@@ -1,6 +1,13 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+
+[System.Serializable]
+public class TagDamage
+{
+    public string tag;
+    public float damage = 100f;
+}
 
 public class HomingBullet : MonoBehaviour
 {
@@ -11,12 +18,21 @@ public class HomingBullet : MonoBehaviour
     private GameObject explosionPrefab;
     private bool exploded = false;
 
-    [Header("Explosion Damage")]
-    public float maxExplosionRadius = 5f;        // ×î´ó±¬Õ¨°ë¾¶
-    public float expansionTime = 0.5f;           // ±¬Õ¨´ÓĞ¡µ½´ó³ÖĞøÊ±¼ä
+    [Header("Explosion Settings")]
+    public float maxExplosionRadius = 5f;        // æœ€å¤§çˆ†ç‚¸åŠå¾„
+    public float expansionTime = 0.5f;           // çˆ†ç‚¸ä»å°åˆ°å¤§æŒç»­æ—¶é—´
 
-    private HashSet<GameObject> damagedTargets = new HashSet<GameObject>(); // ·ÀÖ¹ÖØ¸´ÉËº¦
+    [Header("Default Damage Settings")]
+    public float defaultExplosionDamage = 100f;  // é»˜è®¤çˆ†ç‚¸ä¸­å¿ƒä¼¤å®³
+    public bool useDistanceFalloff = true;       // æ˜¯å¦ä½¿ç”¨è·ç¦»è¡°å‡
 
+    [Header("Per-Tag Damage Control")]
+    [Tooltip("ä¸ºä¸åŒçš„Tagå®šä¹‰å•ç‹¬ä¼¤å®³å€¼ï¼ˆè¦†ç›–é»˜è®¤ä¼¤å®³ï¼‰")]
+    public TagDamage[] tagDamageList;
+
+    private HashSet<GameObject> damagedTargets = new HashSet<GameObject>(); // é˜²æ­¢é‡å¤ä¼¤å®³
+
+    // --- åˆå§‹åŒ– ---
     public void Init(Transform target, float speed, float dropSpeed, GameObject explosionPrefab, float lifeTime)
     {
         this.target = target;
@@ -31,9 +47,8 @@ public class HomingBullet : MonoBehaviour
     {
         if (exploded || target == null) return;
 
-        // ×·×ÙÄ¿±ê
+        // è¿½è¸ª + ä¸‹å 
         Vector3 direction = (target.position - transform.position).normalized;
-        // ¸ß¶ÈÖğ½¥½µµÍ
         direction.y -= dropSpeed * Time.deltaTime;
         transform.position += direction * speed * Time.deltaTime;
         transform.rotation = Quaternion.LookRotation(direction);
@@ -42,29 +57,23 @@ public class HomingBullet : MonoBehaviour
     private void OnTriggerEnter(Collider other)
     {
         if (exploded) return;
-
-        // ºöÂÔBoss×ÔÉí
-        if (other.CompareTag("Boss")) return;
-
-        // Ö»¶Ô·ÇTriggerÅö×²Ìå±¬Õ¨
+        if (other.CompareTag("Boss")) return; // å¿½ç•¥Bossè‡ªèº«
         if (!other.isTrigger)
-        {
             Explode();
-        }
     }
 
     private void Explode()
     {
         exploded = true;
 
-        // 1) ²¥·Å±¬Õ¨ÌØĞ§
+        // 1) çˆ†ç‚¸ç‰¹æ•ˆ
         if (explosionPrefab != null)
             Instantiate(explosionPrefab, transform.position, Quaternion.identity);
 
-        // 2) Æô¶¯·¶Î§À©ÕÅÉËº¦Ğ­³Ì
+        // 2) å¯åŠ¨çˆ†ç‚¸ä¼¤å®³åç¨‹
         StartCoroutine(ExplosionDamageCoroutine());
 
-        // 3) Ïú»Ù×Óµ¯£¨ÑÓ³ÙÒ»Ö¡µÈ´ıĞ­³Ì¼ì²âÉËº¦£©
+        // 3) å»¶è¿Ÿé”€æ¯
         Destroy(gameObject, expansionTime + 0.05f);
     }
 
@@ -81,40 +90,53 @@ public class HomingBullet : MonoBehaviour
         while (timer < expansionTime)
         {
             float currentRadius = Mathf.Lerp(0f, maxExplosionRadius, timer / expansionTime);
-
-            // ¼ì²âÍæ¼ÒÊÇ·ñ½øÈëµ±Ç°°ë¾¶
-            Collider[] hits = Physics.OverlapSphere(transform.position, currentRadius);
-            foreach (Collider hit in hits)
-            {
-                if (damagedTargets.Contains(hit.gameObject)) continue; // ÒÑÉËº¦¹ı
-
-                if (hit.CompareTag("Player"))
-                {
-                    damagedTargets.Add(hit.gameObject);
-                    globalHandler.HandleHit(hit.gameObject);
-                }
-            }
-
+            ApplyExplosionDamage(globalHandler, currentRadius);
             timer += Time.deltaTime;
             yield return null;
         }
 
-        // ×îÖÕ¼ì²â×î´ó°ë¾¶
-        Collider[] finalHits = Physics.OverlapSphere(transform.position, maxExplosionRadius);
-        foreach (Collider hit in finalHits)
+        // æœ€ç»ˆå†æ£€æµ‹ä¸€æ¬¡æœ€å¤§åŠå¾„
+        ApplyExplosionDamage(globalHandler, maxExplosionRadius);
+    }
+
+    private void ApplyExplosionDamage(ProjectileHitHandler handler, float radius)
+    {
+        Collider[] hits = Physics.OverlapSphere(transform.position, radius);
+        foreach (Collider hit in hits)
         {
-            if (damagedTargets.Contains(hit.gameObject)) continue;
-            if (hit.CompareTag("Player"))
+            GameObject go = hit.gameObject;
+            if (damagedTargets.Contains(go)) continue;
+
+            float distance = Vector3.Distance(transform.position, go.transform.position);
+            float baseDamage = GetDamageForTag(go.tag);
+
+            // âœ… è·ç¦»è¡°å‡
+            if (useDistanceFalloff)
             {
-                globalHandler.HandleHit(hit.gameObject);
-                damagedTargets.Add(hit.gameObject);
+                float factor = Mathf.Clamp01(1f - (distance / maxExplosionRadius));
+                baseDamage *= factor;
             }
+
+            handler.HandleHit(go, baseDamage);
+            damagedTargets.Add(go);
         }
+    }
+
+    /// <summary>
+    /// æ ¹æ®tagè·å–å¯¹åº”ä¼¤å®³ï¼ˆæœªå®šä¹‰åˆ™ä½¿ç”¨é»˜è®¤ä¼¤å®³ï¼‰
+    /// </summary>
+    private float GetDamageForTag(string tag)
+    {
+        foreach (var td in tagDamageList)
+        {
+            if (td != null && td.tag == tag)
+                return td.damage;
+        }
+        return defaultExplosionDamage;
     }
 
     private void OnDrawGizmosSelected()
     {
-        // ±à¼­Æ÷ÖĞÏÔÊ¾×î´ó°ë¾¶
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, maxExplosionRadius);
     }

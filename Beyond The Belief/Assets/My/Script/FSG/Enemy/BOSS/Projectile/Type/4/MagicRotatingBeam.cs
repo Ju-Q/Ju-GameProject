@@ -1,4 +1,4 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 
@@ -7,19 +7,19 @@ namespace MagicArsenal
     public class MagicRotatingBeam : MonoBehaviour
     {
         [Header("Center Settings")]
-        public Transform bossCenter;      // Boss ÖĞĞÄ
-        public float radius = 10f;        // ¾àÀëÖĞĞÄ°ë¾¶
-        public float rotationSpeed = 30f; // Ã¿ÃëĞı×ª½Ç¶È
+        public Transform bossCenter;      // Boss ä¸­å¿ƒ
+        public float radius = 10f;        // è·ç¦»ä¸­å¿ƒåŠå¾„
+        public float rotationSpeed = 30f; // æ¯ç§’æ—‹è½¬è§’åº¦
 
         [System.Serializable]
         public class FloorSettings
         {
-            public float height = 3f;   // ¸Ã²ã¸ß¶È
-            public int beamCount = 3;   // ¸Ã²ã·¢ÉäÆ÷ÊıÁ¿
+            public float height = 3f;   // è¯¥å±‚é«˜åº¦
+            public int beamCount = 3;   // è¯¥å±‚å‘å°„å™¨æ•°é‡
         }
 
         [Header("Floor Settings")]
-        public List<FloorSettings> floors = new List<FloorSettings>(); // Ã¿²ãÅäÖÃ
+        public List<FloorSettings> floors = new List<FloorSettings>(); // æ¯å±‚é…ç½®
 
         [Header("Prefabs")]
         public GameObject beamLineRendererPrefab;
@@ -33,12 +33,12 @@ namespace MagicArsenal
         public float textureLengthScale = 3;
 
         [Header("Collision Settings")]
-        public LayerMask collisionMask = ~0; // Åö×²²ã
+        public LayerMask collisionMask = ~0; // ç¢°æ’å±‚
         public float hitCheckRadius = 0.3f;
 
         [Header("Charge Settings")]
-        public float chargeTime = 2f;               // ĞîÁ¦Ê±¼ä
-        public GameObject chargeEffectPrefab;       // ĞîÁ¦ÌØĞ§
+        public float chargeTime = 2f;               // è“„åŠ›æ—¶é—´
+        public GameObject chargeEffectPrefab;       // è“„åŠ›ç‰¹æ•ˆ
 
         private class BeamInstance
         {
@@ -55,13 +55,13 @@ namespace MagicArsenal
         private bool isActive = false;
 
         /// <summary>
-        /// Íâ²¿µ÷ÓÃ£¬ĞîÁ¦ºó¼¤»îĞı×ª¹âÊø
+        /// å¤–éƒ¨è°ƒç”¨ï¼Œè“„åŠ›åæ¿€æ´»æ—‹è½¬å…‰æŸ
         /// </summary>
         public void ActivateBeams()
         {
             if (bossCenter == null)
             {
-                Debug.LogWarning("ÇëÉèÖÃ Boss ÖĞĞÄµã£¡");
+                Debug.LogWarning("è¯·è®¾ç½® Boss ä¸­å¿ƒç‚¹ï¼");
                 return;
             }
             if (isActive) return;
@@ -74,7 +74,7 @@ namespace MagicArsenal
             isActive = true;
             beams.Clear();
 
-            // ĞîÁ¦ÌØĞ§
+            // è“„åŠ›ç‰¹æ•ˆ
             GameObject chargeFX = null;
             if (chargeEffectPrefab != null && bossCenter != null)
             {
@@ -85,7 +85,7 @@ namespace MagicArsenal
 
             if (chargeFX) Destroy(chargeFX);
 
-            // ¸ù¾İÂ¥²ãÅäÖÃÉú³É¹âÊø
+            // æ ¹æ®æ¥¼å±‚é…ç½®ç”Ÿæˆå…‰æŸ
             foreach (var floor in floors)
             {
                 float angleStep = 360f / floor.beamCount;
@@ -110,18 +110,36 @@ namespace MagicArsenal
         }
 
         /// <summary>
-        /// Íâ²¿µ÷ÓÃ£¬Í£Ö¹Ğı×ª¹âÊø
+        /// å¤–éƒ¨è°ƒç”¨ï¼Œåœæ­¢æ—‹è½¬å…‰æŸ
         /// </summary>
         public void DeactivateBeams()
         {
+            Debug.Log("[MagicRotatingBeam] âŒ DeactivateBeams() called â€” cleaning up beams");
             isActive = false;
 
             foreach (var b in beams)
             {
-                Destroy(b.beamStart);
-                Destroy(b.beamEnd);
-                Destroy(b.beam);
+                if (b.beamStart) Destroy(b.beamStart);
+                if (b.beamEnd) Destroy(b.beamEnd);
+                if (b.beam) Destroy(b.beam);
             }
+            beams.Clear();
+        }
+
+        public void ForceStopAndClear()
+        {
+            Debug.Log("[MagicRotatingBeam] âš ï¸ ForceStopAndClear() called â€” åœæ­¢æ—‹è½¬å¹¶æ¸…ç†æ‰€æœ‰ç‰¹æ•ˆ");
+
+            isActive = false; // åœæ­¢ Update
+
+            // é”€æ¯æ‰€æœ‰ç”Ÿæˆçš„å…‰æŸå¯¹è±¡
+            foreach (var b in beams)
+            {
+                if (b.beamStart) Destroy(b.beamStart);
+                if (b.beamEnd) Destroy(b.beamEnd);
+                if (b.beam) Destroy(b.beam);
+            }
+
             beams.Clear();
         }
 
@@ -137,7 +155,7 @@ namespace MagicArsenal
 
         private void UpdateBeamInstance(BeamInstance b)
         {
-            // ¸üĞÂ½Ç¶È
+            // æ›´æ–°è§’åº¦
             b.currentAngle += rotationSpeed * Time.deltaTime;
             if (b.currentAngle > 360f) b.currentAngle -= 360f;
 
@@ -149,7 +167,7 @@ namespace MagicArsenal
 
             Vector3 endPos = startPos + (Quaternion.Euler(0, b.currentAngle, 0) * Vector3.forward) * sweepDistance;
 
-            // Åö×²¼ì²â
+            // ç¢°æ’æ£€æµ‹
             if (Physics.Raycast(startPos, (endPos - startPos).normalized, out RaycastHit hit, sweepDistance, collisionMask))
             {
                 endPos = hit.point;
@@ -157,7 +175,7 @@ namespace MagicArsenal
 
             UpdateBeamVisual(b, startPos, endPos);
 
-            // ¼ì²âÍæ¼ÒÊÜÉË
+            // æ£€æµ‹ç©å®¶å—ä¼¤
             CheckHitPlayer(b, startPos, (endPos - startPos).normalized, Vector3.Distance(startPos, endPos));
         }
 
@@ -208,5 +226,11 @@ namespace MagicArsenal
                 }
             }
         }
+
+        public void ResetAttack()
+        {
+            DeactivateBeams();  // åœæ­¢æ—‹è½¬å¹¶é”€æ¯å…‰æŸ
+        }
+
     }
 }

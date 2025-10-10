@@ -1,93 +1,104 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 using System.Collections;
 
 [System.Serializable]
 public class FireWallDirectionData
 {
-    [Tooltip("»ðÑæÇ½ÍÆ½ø·½Ïò£¬ÀýÈç (0,0,1)=Ç°, (0,0,-1)=ºó, (1,0,0)=ÓÒ, (-1,0,0)=×ó")]
+    [Tooltip("ç«ç„°å¢™æŽ¨è¿›æ–¹å‘ï¼Œä¾‹å¦‚ (0,0,1)=å‰, (0,0,-1)=åŽ, (1,0,0)=å³, (-1,0,0)=å·¦")]
     public Vector3 direction;
 
-    [Header("ÌáÊ¾ÌØÐ§£¨³¡¾°ÒÑÓÐ¶ÔÏó£¬Ä¬ÈÏ¹Ø±Õ£©")]
-    public GameObject warningObject; // ÌáÊ¾ÌØÐ§¶ÔÏó£¨³¡¾°ÖÐ£©
+    [Header("æç¤ºç‰¹æ•ˆï¼ˆåœºæ™¯å·²æœ‰å¯¹è±¡ï¼Œé»˜è®¤å…³é—­ï¼‰")]
+    public GameObject warningObject; // æç¤ºç‰¹æ•ˆå¯¹è±¡ï¼ˆåœºæ™¯ä¸­ï¼‰
 
-    [Header("»ðÑæÇ½Éú³ÉÎ»ÖÃ£¨¿ÕÎïÌå¼´¿É£©")]
-    public Transform fireWallSpawnPoint; // Õâ¸ö·½Ïò»ðÑæÇ½µÄÉú³ÉÎ»ÖÃ£¨¿ÕÎïÌå£©
+    [Header("ç«ç„°å¢™ç”Ÿæˆä½ç½®ï¼ˆç©ºç‰©ä½“å³å¯ï¼‰")]
+    public Transform fireWallSpawnPoint; // è¿™ä¸ªæ–¹å‘ç«ç„°å¢™çš„ç”Ÿæˆä½ç½®ï¼ˆç©ºç‰©ä½“ï¼‰
 }
 
 [System.Serializable]
 public class FireWallFloorData
 {
-    [Header("Â¥²ãÐÅÏ¢")]
-    public string floorName;   // Â¥²ãÃû³Æ
-    public float minHeight;    // Íæ¼Ò y >= minHeight
-    public float maxHeight;    // Íæ¼Ò y < maxHeight
+    [Header("æ¥¼å±‚ä¿¡æ¯")]
+    public string floorName;   // æ¥¼å±‚åç§°
+    public float minHeight;    // çŽ©å®¶ y >= minHeight
+    public float maxHeight;    // çŽ©å®¶ y < maxHeight
 
-    [Header("·½ÏòÉèÖÃ£¨Ã¿¸ö·½ÏòÒ»¸öÌáÊ¾ + Ò»¸öÉú³Éµã£©")]
+    [Header("æ–¹å‘è®¾ç½®ï¼ˆæ¯ä¸ªæ–¹å‘ä¸€ä¸ªæç¤º + ä¸€ä¸ªç”Ÿæˆç‚¹ï¼‰")]
     public FireWallDirectionData[] directions;
 }
 
 [CreateAssetMenu(menuName = "EnemyAttacks/FireWallAttack")]
 public class FireWallAttack : EnemyAttack
 {
-    [Header("Â¥²ãÉèÖÃ")]
+    [Header("æ¥¼å±‚è®¾ç½®")]
     public FireWallFloorData[] floors;
 
-    [Header("»ðÑæÇ½Í³Ò»ÌØÐ§£¨Prefab£©")]
+    [Header("ç«ç„°å¢™ç»Ÿä¸€ç‰¹æ•ˆï¼ˆPrefabï¼‰")]
     public GameObject fireWallPrefab;
 
-    [Header("¹¥»÷¿ØÖÆ")]
-    [Tooltip("Ã¿´Î¼¤»îÖ®¼äµÄ¼ä¸ô£¨Ãë£©")]
+    [Header("æ”»å‡»æŽ§åˆ¶")]
+    [Tooltip("æ¯æ¬¡æ¿€æ´»ä¹‹é—´çš„é—´éš”ï¼ˆç§’ï¼‰")]
     public float intervalBetweenActivations = 1f;
 
-    [Tooltip("ÌáÊ¾ÌØÐ§ÌáÇ°³öÏÖµÄÊ±¼ä£¨Ãë£©")]
+    [Tooltip("æç¤ºç‰¹æ•ˆæå‰å‡ºçŽ°çš„æ—¶é—´ï¼ˆç§’ï¼‰")]
     public float warningTime = 2f;
 
-    [Tooltip("»ðÑæÇ½³ÖÐøÊ±¼ä£¨Ãë£©")]
+    [Tooltip("ç«ç„°å¢™æŒç»­æ—¶é—´ï¼ˆç§’ï¼‰")]
     public float fireWallDuration = 3f;
 
-    // ¼ÇÂ¼ÉÏÒ»´ÎÑ¡ÔñµÄ·½ÏòË÷Òý£¨±ÜÃâÖØ¸´£©
+    // è®°å½•ä¸Šä¸€æ¬¡é€‰æ‹©çš„æ–¹å‘ç´¢å¼•ï¼ˆé¿å…é‡å¤ï¼‰
     private int lastDirectionIndex = -1;
+
+    // âœ… æ–°å¢žï¼šæ˜¯å¦é”å®šåœ¨æŸä¸€å±‚
+    private bool floorLocked = false;
+
+    // âœ… æ–°å¢žï¼šè¢«é”å®šçš„æ¥¼å±‚æ•°æ®
+    private FireWallFloorData lockedFloor = null;
+
+    // âœ… å¯é€‰ï¼šæŒ‡å®šå“ªä¸ªæ¥¼å±‚ä¸ºä¸€æ¥¼ï¼ˆæˆ–é”å®šç›®æ ‡æ¥¼å±‚ï¼‰
+    [Header("æ¥¼å±‚é”å®šè®¾ç½®")]
+    [Tooltip("ä¸€æ¥¼çš„æ¥¼å±‚åç§°ï¼ˆæ£€æµ‹ç”¨ï¼‰")]
+    public string floorNameToLock = "ä¸€æ¥¼";
 
     public override IEnumerator ExecuteAttack()
     {
-        // ÕÒµ½Íæ¼Ò
+        // æ‰¾åˆ°çŽ©å®¶
         GameObject player = GameObject.FindWithTag("Player");
         if (player == null)
         {
-            Debug.LogWarning("FireWallAttack: Player Î´ÕÒµ½£¡");
+            Debug.LogWarning("FireWallAttack: Player æœªæ‰¾åˆ°ï¼");
             yield break;
         }
 
         float playerY = player.transform.position.y;
 
-        // ÕÒµ½Íæ¼ÒËùÔÚÂ¥²ã
-        FireWallFloorData currentFloor = null;
-        foreach (var floor in floors)
+        // âœ… å¦‚æžœå·²ç»é”å®šæ¥¼å±‚ï¼Œç›´æŽ¥ä½¿ç”¨é”å®šæ¥¼å±‚
+        FireWallFloorData currentFloor = floorLocked ? lockedFloor : GetFloorByHeight(playerY);
+
+        // âœ… å¦‚æžœè¿˜æ²¡é”å®šæ¥¼å±‚ï¼Œå¹¶ä¸”æ£€æµ‹åˆ°è¿›å…¥æŒ‡å®šæ¥¼å±‚ï¼ˆä¾‹å¦‚ä¸€æ¥¼ï¼‰
+        if (!floorLocked && currentFloor != null && currentFloor.floorName == floorNameToLock)
         {
-            if (playerY >= floor.minHeight && playerY < floor.maxHeight)
-            {
-                currentFloor = floor;
-                break;
-            }
+            lockedFloor = currentFloor;
+            floorLocked = true;
+            Debug.Log($"ðŸ”¥ FireWallAttack å·²é”å®šæ¥¼å±‚ï¼š{lockedFloor.floorName}");
         }
 
+        // âœ… å¦‚æžœä»ç„¶æ²¡æ‰¾åˆ°æ¥¼å±‚ï¼ˆä¸”æ²¡é”å®šï¼‰ï¼Œç›´æŽ¥é€€å‡º
         if (currentFloor == null)
         {
-            Debug.LogWarning("FireWallAttack: Íæ¼ÒÎ´ÔÚÈÎºÎÂ¥²ã·¶Î§ÄÚ£¡");
+            Debug.LogWarning("FireWallAttack: æœªæ‰¾åˆ°å¯¹åº”æ¥¼å±‚ï¼");
             yield break;
         }
 
-        // Ëæ»úÑ¡È¡Ò»¸ö·½Ïò£¨±ÜÃâºÍÉÏÒ»´ÎÏàÍ¬£©
+        // âœ… ä»Žé”å®šæˆ–å½“å‰æ¥¼å±‚ä¸­éšæœºé€‰æ–¹å‘
         if (currentFloor.directions == null || currentFloor.directions.Length == 0)
         {
-            Debug.LogWarning("FireWallAttack: µ±Ç°Â¥²ãÃ»ÓÐÅäÖÃ·½Ïò£¡");
+            Debug.LogWarning("FireWallAttack: å½“å‰æ¥¼å±‚æ²¡æœ‰é…ç½®æ–¹å‘ï¼");
             yield break;
         }
 
         int chosenIndex = Random.Range(0, currentFloor.directions.Length);
         if (currentFloor.directions.Length > 1)
         {
-            // Èç¹ûÖ»ÓÐÒ»¸ö·½Ïò¾Í²»ÓÃ¹Ü
             int attempts = 0;
             while (chosenIndex == lastDirectionIndex && attempts < 10)
             {
@@ -96,19 +107,16 @@ public class FireWallAttack : EnemyAttack
             }
         }
 
-        lastDirectionIndex = chosenIndex; // ¼ÇÂ¼±¾´Î·½ÏòË÷Òý
+        lastDirectionIndex = chosenIndex;
         FireWallDirectionData chosenDirData = currentFloor.directions[chosenIndex];
 
-        // ÌáÊ¾ÌØÐ§¿ªÆô
+        // ðŸ”¥ æç¤ºç‰¹æ•ˆå¼€å¯
         if (chosenDirData.warningObject != null)
-        {
             chosenDirData.warningObject.SetActive(true);
-        }
 
-        // µÈ´ýÌáÊ¾Ê±¼ä
         yield return new WaitForSeconds(warningTime);
 
-        // Éú³É»ðÑæÇ½
+        // ðŸ”¥ ç”Ÿæˆç«ç„°å¢™
         if (fireWallPrefab != null && chosenDirData.fireWallSpawnPoint != null)
         {
             GameObject fireWall = GameObject.Instantiate(
@@ -117,24 +125,28 @@ public class FireWallAttack : EnemyAttack
                 Quaternion.identity
             );
 
-            // Èç¹û»ðÑæÇ½ÓÐ mover£¬³õÊ¼»¯·½Ïò
             FireWallMover mover = fireWall.GetComponent<FireWallMover>();
             if (mover != null)
-            {
                 mover.Init(chosenDirData.direction);
-            }
 
-            // »ðÑæÇ½³ÖÐøÊ±¼äºó×Ô¶¯Ïú»Ù
             GameObject.Destroy(fireWall, fireWallDuration);
         }
 
-        // ÌáÊ¾ÌØÐ§¹Ø±Õ
+        // ðŸ”¥ æç¤ºç‰¹æ•ˆå…³é—­
         if (chosenDirData.warningObject != null)
-        {
             chosenDirData.warningObject.SetActive(false);
-        }
 
-        // µÈ´ý¼ä¸ôÔÙÖ´ÐÐÏÂÒ»´Î¹¥»÷
         yield return new WaitForSeconds(intervalBetweenActivations);
+    }
+
+    // âœ… å·¥å…·æ–¹æ³•ï¼šé€šè¿‡é«˜åº¦æ‰¾åˆ°æ¥¼å±‚
+    private FireWallFloorData GetFloorByHeight(float y)
+    {
+        foreach (var floor in floors)
+        {
+            if (y >= floor.minHeight && y < floor.maxHeight)
+                return floor;
+        }
+        return null;
     }
 }

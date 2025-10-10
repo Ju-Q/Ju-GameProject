@@ -70,19 +70,11 @@ public class AreaObjectStateController : MonoBehaviour
         if (enterDelay > 0f)
             yield return new WaitForSeconds(enterDelay);
 
-        // 保持这些物体开启
         foreach (GameObject obj in objectsToKeepOn)
-        {
-            if (obj != null)
-                obj.SetActive(true);
-        }
+            AreaObjectStateManager.Instance.RequestKeepOn(obj);
 
-        // 保持这些物体关闭
         foreach (GameObject obj in objectsToKeepOff)
-        {
-            if (obj != null)
-                obj.SetActive(false);
-        }
+            AreaObjectStateManager.Instance.RequestKeepOff(obj);
     }
 
     private IEnumerator HandleExit()
@@ -90,18 +82,11 @@ public class AreaObjectStateController : MonoBehaviour
         if (exitDelay > 0f)
             yield return new WaitForSeconds(exitDelay);
 
-        // 恢复开启组原始状态
-        for (int i = 0; i < objectsToKeepOn.Length; i++)
-        {
-            if (objectsToKeepOn[i] != null)
-                objectsToKeepOn[i].SetActive(originalOnStates[i]);
-        }
+        foreach (GameObject obj in objectsToKeepOn)
+            AreaObjectStateManager.Instance.ReleaseKeepOn(obj);
 
-        // 恢复关闭组原始状态
-        for (int i = 0; i < objectsToKeepOff.Length; i++)
-        {
-            if (objectsToKeepOff[i] != null)
-                objectsToKeepOff[i].SetActive(originalOffStates[i]);
-        }
+        foreach (GameObject obj in objectsToKeepOff)
+            AreaObjectStateManager.Instance.ReleaseKeepOff(obj);
     }
+
 }

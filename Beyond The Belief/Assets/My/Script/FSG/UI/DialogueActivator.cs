@@ -1,43 +1,44 @@
-using System.Collections.Generic;
+ï»¿using System.Collections.Generic;
 using UnityEngine;
 
 public class DialogueActivator : MonoBehaviour
 {
-    [Header("ÒıÓÃ DialogueManager")]
+    [Header("å¼•ç”¨ DialogueManager")]
     public DialogueManager1 dialogueManager;
 
     [System.Serializable]
     public class ActivationEvent
     {
-        public int dialogueIndex;       // µÚ¼¸¾ä»°Ê±´¥·¢£¨´Ó0¿ªÊ¼£©
-        public GameObject targetObject; // Òª¼¤»îµÄÎïÌå
-        public bool setActiveState = true; // ¼¤»î»¹ÊÇÒş²Ø
+        public int dialogueIndex;
+        public GameObject targetObject;
+        public bool setActiveState = true;
+
+        [HideInInspector] public bool hasTriggered = false; // âœ… æ–°å¢ï¼šå•ç‹¬è®°å½•æ¯ä¸ªäº‹ä»¶æ˜¯å¦å·²è§¦å‘
     }
 
-    [Header("´¥·¢ÉèÖÃ")]
+    [Header("è§¦å‘è®¾ç½®")]
     public List<ActivationEvent> activationEvents = new List<ActivationEvent>();
-
-    private HashSet<int> triggeredIndices = new HashSet<int>(); // ±ÜÃâÖØ¸´´¥·¢
 
     void Update()
     {
-        if (dialogueManager == null || !dialogueManager.isDialogueActive) return;
+        if (dialogueManager == null) return;
 
         int currentIndex = GetCurrentDialogueIndex(dialogueManager);
+
         foreach (var ev in activationEvents)
         {
-            if (ev.dialogueIndex == currentIndex && !triggeredIndices.Contains(currentIndex))
+            if (!ev.hasTriggered && ev.dialogueIndex == currentIndex)
             {
                 if (ev.targetObject != null)
                 {
                     ev.targetObject.SetActive(ev.setActiveState);
                 }
-                triggeredIndices.Add(currentIndex);
+
+                ev.hasTriggered = true; // âœ… é˜²æ­¢é‡å¤è§¦å‘æ­¤æ¡
             }
         }
     }
 
-    // ÓÃ·´Éä°²È«·ÃÎÊ private µÄ currentDialogueIndex
     int GetCurrentDialogueIndex(DialogueManager1 manager)
     {
         var field = typeof(DialogueManager1).GetField("currentDialogueIndex",

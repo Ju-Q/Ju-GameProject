@@ -1,96 +1,322 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 using UnityEngine.UI;
+using System.Collections.Generic;
 
-// ¼¼ÄÜµã¹ÜÀíÆ÷£º¸ºÔğ¼¼ÄÜµãµÄÔö¼Ó¡¢ÏûºÄ¡¢UI¸üĞÂ¼°³¤°´¼ì²â
+// æŠ€èƒ½ç‚¹ç®¡ç†å™¨ï¼šè´Ÿè´£æŠ€èƒ½ç‚¹çš„å¢åŠ ã€æ¶ˆè€—ã€UIæ›´æ–°åŠé•¿æŒ‰æ£€æµ‹
 public class SkillPointManager : MonoBehaviour
 {
-    // ====== µ¥ÀıÄ£Ê½ ======
-    public static SkillPointManager Instance; // È«¾ÖÎ¨Ò»ÊµÀı£¬·½±ãÆäËû½Å±¾·ÃÎÊ
+    // ====== å•ä¾‹æ¨¡å¼ ======
+    public static SkillPointManager Instance;
 
-    // ====== ¼¼ÄÜµãÅäÖÃ ======
-    public int currentSkillPoints = 0;  // µ±Ç°ÓµÓĞµÄ¼¼ÄÜµãÊı
-    public int maxSkillPoints = 3;     // ¼¼ÄÜµãÉÏÏŞ
-    public Image[] skillPointImages;   // UIÏÔÊ¾µÄ¼¼ÄÜµãÍ¼±ê£¨Èç3¸öImage×é³ÉµÄÊı×é£©
+    // ====== æŠ€èƒ½ç‚¹é…ç½® ======
+    public int currentSkillPoints = 0;
+    public int maxSkillPoints = 3;
+    public Image[] skillPointImages;
 
-    // ====== ³¤°´¼ì²â±äÁ¿ ======
-    private float holdTime = 2f;       // ´¥·¢³¤°´µÄËùĞèÊ±¼ä£¨Ãë£©
-    private float holdTimer = 0f;      // ¼ÆÊ±Æ÷£¬¼ÇÂ¼Êó±ê×ó¼ü°´×¡µÄÊ±¼ä
-    private bool isHolding = false;    // ÊÇ·ñÕıÔÚ³¤°´
+    // ====== é•¿æŒ‰æ£€æµ‹å˜é‡ ======
+    private float holdTime = 2f;
+    private float holdTimer = 0f;
+    private bool isHolding = false;
 
-    // ====== ³õÊ¼»¯µ¥Àı ======
+    // ====== æ£€æŸ¥ç‚¹ç³»ç»Ÿ ======
+    private Dictionary<int, int> checkpointSkillPoints = new Dictionary<int, int>();
+    private HashSet<int> recordedCheckpoints = new HashSet<int>(); // è®°å½•å·²ç»ä¿å­˜è¿‡çš„æ£€æŸ¥ç‚¹
+    private int currentCheckpointIndex = -1;
+
+    // ====== äº‹ä»¶ç³»ç»Ÿ ======
+    public static event System.Action<int> OnSkillPointsChanged;
+    public static event System.Action<int> OnCheckpointSaved;
+
+    // ====== åˆå§‹åŒ–å•ä¾‹ ======
     private void Awake()
     {
         if (Instance == null)
-            Instance = this; // È·±£³¡¾°ÖĞÖ»ÓĞÒ»¸öÊµÀı
+            Instance = this;
     }
 
-    // ====== Ã¿Ö¡¼ì²â³¤°´Âß¼­ ======
+    private void Start()
+    {
+        // âŒ ç§»é™¤è‡ªåŠ¨ä¿å­˜æ£€æŸ¥ç‚¹0
+        // æ£€æŸ¥ç‚¹å°†åœ¨ CanStartAttack å¼€å¯åç”± EnemyAttackController ä¿å­˜
+        Debug.Log($"ğŸ¯ æŠ€èƒ½ç‚¹ç®¡ç†å™¨åˆå§‹åŒ–å®Œæˆï¼Œå½“å‰æŠ€èƒ½ç‚¹: {currentSkillPoints}ï¼Œç­‰å¾… CanStartAttack å¼€å¯åä¿å­˜æ£€æŸ¥ç‚¹");
+    }
+
+    // ====== æ¯å¸§æ£€æµ‹é•¿æŒ‰é€»è¾‘ ======
     private void Update()
     {
-        if (Input.GetMouseButton(0)) // Êó±ê×ó¼ü°´×¡Ê±
+        if (Input.GetMouseButton(0))
         {
             isHolding = true;
-            holdTimer += Time.deltaTime; // ÀÛ¼Ó°´×¡Ê±¼ä
+            holdTimer += Time.deltaTime;
 
-            // Èç¹û°´×¡Ê±¼ä³¬¹ıãĞÖµ£¬´¥·¢¼¼ÄÜµãÏûºÄ
             if (holdTimer >= holdTime)
             {
-                UseSkillPoint();    // ÏûºÄ¼¼ÄÜµã
-                holdTimer = 0f;       // ÖØÖÃ¼ÆÊ±Æ÷
-                isHolding = false;    // ½áÊø³¤°´×´Ì¬
+                UseSkillPoint();
+                holdTimer = 0f;
+                isHolding = false;
             }
         }
-        else if (Input.GetMouseButtonUp(0)) // Êó±ê×ó¼üËÉ¿ªÊ±
+        else if (Input.GetMouseButtonUp(0))
         {
             isHolding = false;
-            holdTimer = 0f; // ÖØÖÃ¼ÆÊ±Æ÷
+            holdTimer = 0f;
         }
     }
 
-    // ====== Ôö¼Ó¼¼ÄÜµã ======
+    // ====== æ£€æŸ¥ç‚¹ç›¸å…³æ–¹æ³• ======
+
+    /// <summary>
+    /// ä¿å­˜å½“å‰æŠ€èƒ½ç‚¹åˆ°æ£€æŸ¥ç‚¹ï¼ˆåªåœ¨ç¬¬ä¸€æ¬¡è¿›å…¥æ—¶ä¿å­˜ï¼‰
+    /// </summary>
+    /// <param name="checkpointIndex">æ£€æŸ¥ç‚¹ç´¢å¼•</param>
+    /// <param name="forceSave">æ˜¯å¦å¼ºåˆ¶ä¿å­˜</param>
+    public void SaveCheckpointState(int checkpointIndex, bool forceSave = false)
+    {
+        // å¦‚æœä¸æ˜¯å¼ºåˆ¶ä¿å­˜ï¼Œä¸”å·²ç»è®°å½•è¿‡è¿™ä¸ªæ£€æŸ¥ç‚¹ï¼Œåˆ™è·³è¿‡
+        if (!forceSave && recordedCheckpoints.Contains(checkpointIndex))
+        {
+            Debug.Log($"â­ï¸ æ£€æŸ¥ç‚¹ {checkpointIndex} å·²è®°å½•è¿‡ï¼Œè·³è¿‡ä¿å­˜");
+            return;
+        }
+
+        if (checkpointSkillPoints.ContainsKey(checkpointIndex))
+        {
+            checkpointSkillPoints[checkpointIndex] = currentSkillPoints;
+        }
+        else
+        {
+            checkpointSkillPoints.Add(checkpointIndex, currentSkillPoints);
+        }
+
+        // æ ‡è®°è¿™ä¸ªæ£€æŸ¥ç‚¹å·²ç»è®°å½•è¿‡
+        recordedCheckpoints.Add(checkpointIndex);
+        currentCheckpointIndex = checkpointIndex;
+
+        Debug.Log($"ğŸ’¾ æ£€æŸ¥ç‚¹ {checkpointIndex} æŠ€èƒ½ç‚¹å·²ä¿å­˜: {currentSkillPoints} (é¦–æ¬¡è®°å½•)");
+        OnCheckpointSaved?.Invoke(checkpointIndex);
+    }
+
+    /// <summary>
+    /// æ¢å¤åˆ°æŒ‡å®šæ£€æŸ¥ç‚¹çš„æŠ€èƒ½ç‚¹çŠ¶æ€
+    /// </summary>
+    public void RestoreToCheckpoint(int checkpointIndex)
+    {
+        if (checkpointSkillPoints.ContainsKey(checkpointIndex))
+        {
+            int savedSkillPoints = checkpointSkillPoints[checkpointIndex];
+            SetSkillPoints(savedSkillPoints);
+
+            Debug.Log($"ğŸ”„ æŠ€èƒ½ç‚¹å·²æ¢å¤åˆ°æ£€æŸ¥ç‚¹ {checkpointIndex} çš„çŠ¶æ€: {savedSkillPoints}");
+        }
+        else
+        {
+            Debug.LogWarning($"âš ï¸ æœªæ‰¾åˆ°æ£€æŸ¥ç‚¹ {checkpointIndex} çš„æŠ€èƒ½ç‚¹è®°å½•ï¼Œä½¿ç”¨é»˜è®¤å€¼");
+            SetSkillPoints(0);
+        }
+
+        currentCheckpointIndex = checkpointIndex;
+    }
+
+    /// <summary>
+    /// æ£€æŸ¥æ˜¯å¦å·²ç»è®°å½•è¿‡æŸä¸ªæ£€æŸ¥ç‚¹
+    /// </summary>
+    public bool HasCheckpointRecorded(int checkpointIndex)
+    {
+        return recordedCheckpoints.Contains(checkpointIndex);
+    }
+
+    /// <summary>
+    /// å¼ºåˆ¶é‡æ–°è®°å½•å½“å‰æ£€æŸ¥ç‚¹ï¼ˆæ…ç”¨ï¼‰
+    /// </summary>
+    public void ForceRerecordCheckpoint(int checkpointIndex)
+    {
+        if (checkpointSkillPoints.ContainsKey(checkpointIndex))
+        {
+            checkpointSkillPoints[checkpointIndex] = currentSkillPoints;
+        }
+        else
+        {
+            checkpointSkillPoints.Add(checkpointIndex, currentSkillPoints);
+        }
+
+        recordedCheckpoints.Add(checkpointIndex);
+        Debug.Log($"ğŸ” å¼ºåˆ¶é‡æ–°è®°å½•æ£€æŸ¥ç‚¹ {checkpointIndex}: {currentSkillPoints}");
+    }
+
+    /// <summary>
+    /// é‡ç½®æ£€æŸ¥ç‚¹è®°å½•çŠ¶æ€ï¼ˆç”¨äºé‡æ–°å¼€å§‹æ¸¸æˆç­‰ï¼‰
+    /// </summary>
+    public void ResetCheckpointRecords()
+    {
+        recordedCheckpoints.Clear();
+        checkpointSkillPoints.Clear();
+        currentCheckpointIndex = -1;
+        Debug.Log("ğŸ”„ æ‰€æœ‰æ£€æŸ¥ç‚¹è®°å½•å·²é‡ç½®");
+    }
+
+    /// <summary>
+    /// æ‰‹åŠ¨åˆå§‹åŒ–æ£€æŸ¥ç‚¹0ï¼ˆåœ¨CanStartAttackå¼€å¯æ—¶è°ƒç”¨ï¼‰
+    /// </summary>
+    public void InitializeCheckpointZero()
+    {
+        if (currentCheckpointIndex == -1) // åªåœ¨æœªåˆå§‹åŒ–æ—¶æ‰§è¡Œ
+        {
+            SaveCheckpointState(0, true);
+            Debug.Log($"ğŸ¯ æ£€æŸ¥ç‚¹0åˆå§‹åŒ–å®Œæˆ: {currentSkillPoints}æŠ€èƒ½ç‚¹");
+        }
+        else
+        {
+            Debug.Log($"â­ï¸ æ£€æŸ¥ç‚¹0å·²åˆå§‹åŒ–ï¼Œè·³è¿‡");
+        }
+    }
+
+    /// <summary>
+    /// è·å–å½“å‰æ£€æŸ¥ç‚¹çš„æŠ€èƒ½ç‚¹æ•°é‡
+    /// </summary>
+    public int GetCurrentCheckpointSkillPoints()
+    {
+        if (checkpointSkillPoints.ContainsKey(currentCheckpointIndex))
+            return checkpointSkillPoints[currentCheckpointIndex];
+        return 0;
+    }
+
+    /// <summary>
+    /// è·å–æŒ‡å®šæ£€æŸ¥ç‚¹çš„æŠ€èƒ½ç‚¹æ•°é‡
+    /// </summary>
+    public int GetCheckpointSkillPoints(int checkpointIndex)
+    {
+        if (checkpointSkillPoints.ContainsKey(checkpointIndex))
+            return checkpointSkillPoints[checkpointIndex];
+        return 0;
+    }
+
+    // ====== æŠ€èƒ½ç‚¹åŸºç¡€æ“ä½œ ======
+
+    /// <summary>
+    /// å¢åŠ æŠ€èƒ½ç‚¹
+    /// </summary>
     public void AddSkillPoint()
     {
-
-        if (DialogueManager1.AnyDialogueActive) return; // ¶Ô»°Ê±½ûÖ¹¼Óµã
+        if (DialogueManager1.AnyDialogueActive) return;
 
         if (currentSkillPoints < maxSkillPoints)
         {
             currentSkillPoints++;
-            UpdateSkillPointUI(); // ¸üĞÂUIÏÔÊ¾
+            UpdateSkillPointUI();
+            Debug.Log($"â• æŠ€èƒ½ç‚¹å¢åŠ ï¼Œå½“å‰: {currentSkillPoints}/{maxSkillPoints}");
+        }
+        else
+        {
+            Debug.Log("â›” æŠ€èƒ½ç‚¹å·²è¾¾ä¸Šé™");
         }
     }
 
-    // ====== Ç¿ÖÆÉèÖÃ¼¼ÄÜµãÊıÖµ ======
+    /// <summary>
+    /// è®¾ç½®æŠ€èƒ½ç‚¹æ•°é‡
+    /// </summary>
     public void SetSkillPoints(int value)
     {
+        if (DialogueManager1.AnyDialogueActive) return;
 
-        if (DialogueManager1.AnyDialogueActive) return; // ¶Ô»°Ê±½ûÖ¹¼Óµã
-        // ÏŞÖÆÊıÖµÔÚ0ºÍmaxSkillPointsÖ®¼ä
+        int previousValue = currentSkillPoints;
         currentSkillPoints = Mathf.Clamp(value, 0, maxSkillPoints);
         UpdateSkillPointUI();
+
+        //Debug.Log($"ğŸ¯ æŠ€èƒ½ç‚¹è®¾ç½®: {previousValue} â†’ {currentSkillPoints}");
     }
 
-    // ====== ÏûºÄ¼¼ÄÜµã ======
+    /// <summary>
+    /// æ¶ˆè€—æŠ€èƒ½ç‚¹
+    /// </summary>
     public void UseSkillPoint()
     {
-        if (DialogueManager1.AnyDialogueActive) return; // ¶Ô»°Ê±½ûÖ¹¼Óµã
+        if (DialogueManager1.AnyDialogueActive) return;
+
         if (currentSkillPoints > 0)
         {
             currentSkillPoints--;
             UpdateSkillPointUI();
-            Debug.Log("Ê¹ÓÃÁËÒ»¸ö¼¼ÄÜµã£¬Ê£Óà£º" + currentSkillPoints);
-            // ÕâÀï¿ÉÒÔÌí¼Ó¼¼ÄÜÊÍ·ÅµÄ¾ßÌåÂß¼­£¨Èç²¥·ÅÌØĞ§¡¢´¥·¢¼¼ÄÜµÈ£©
+            Debug.Log($"â– ä½¿ç”¨äº†ä¸€ä¸ªæŠ€èƒ½ç‚¹ï¼Œå‰©ä½™: {currentSkillPoints}");
+        }
+        else
+        {
+            Debug.Log("â›” æ²¡æœ‰å¯ç”¨çš„æŠ€èƒ½ç‚¹");
         }
     }
 
-    // ====== ¸üĞÂUIÏÔÊ¾ ======
+    /// <summary>
+    /// æ£€æŸ¥æ˜¯å¦å¯ä»¥æ¶ˆè€—æŠ€èƒ½ç‚¹
+    /// </summary>
+    public bool CanUseSkillPoint()
+    {
+        return currentSkillPoints > 0 && !DialogueManager1.AnyDialogueActive;
+    }
+
+    /// <summary>
+    /// è·å–å½“å‰æŠ€èƒ½ç‚¹æ•°é‡
+    /// </summary>
+    public int GetCurrentSkillPoints()
+    {
+        return currentSkillPoints;
+    }
+
+    /// <summary>
+    /// è·å–æŠ€èƒ½ç‚¹ä¸Šé™
+    /// </summary>
+    public int GetMaxSkillPoints()
+    {
+        return maxSkillPoints;
+    }
+
+    // ====== UIæ›´æ–° ======
     private void UpdateSkillPointUI()
     {
-        // ±éÀúËùÓĞ¼¼ÄÜµãÍ¼±ê£¬¸ù¾İµ±Ç°¼¼ÄÜµãÊıÏÔÊ¾/Òş²Ø
+        if (skillPointImages == null || skillPointImages.Length == 0)
+        {
+            Debug.LogWarning("âš ï¸ æŠ€èƒ½ç‚¹UIå›¾åƒæ•°ç»„æœªè®¾ç½®");
+            return;
+        }
+
         for (int i = 0; i < skillPointImages.Length; i++)
         {
-            skillPointImages[i].enabled = i < currentSkillPoints;
-            // ÀıÈç£ºcurrentSkillPoints=2Ê±£¬Ç°Á½¸öÍ¼±êÏÔÊ¾£¬µÚÈı¸öÒş²Ø
+            if (skillPointImages[i] != null)
+            {
+                skillPointImages[i].enabled = i < currentSkillPoints;
+            }
         }
+
+        OnSkillPointsChanged?.Invoke(currentSkillPoints);
+    }
+
+    // ====== è°ƒè¯•æ–¹æ³• ======
+
+    [ContextMenu("æ‰“å°æ‰€æœ‰æ£€æŸ¥ç‚¹çŠ¶æ€")]
+    public void PrintAllCheckpoints()
+    {
+        Debug.Log("=== æ‰€æœ‰æ£€æŸ¥ç‚¹æŠ€èƒ½ç‚¹çŠ¶æ€ ===");
+        if (checkpointSkillPoints.Count == 0)
+        {
+            Debug.Log("æ²¡æœ‰ä¿å­˜çš„æ£€æŸ¥ç‚¹");
+            return;
+        }
+
+        foreach (var checkpoint in checkpointSkillPoints)
+        {
+            string recordedStatus = recordedCheckpoints.Contains(checkpoint.Key) ? "å·²è®°å½•" : "æœªè®°å½•";
+            Debug.Log($"æ£€æŸ¥ç‚¹ {checkpoint.Key}: {checkpoint.Value} æŠ€èƒ½ç‚¹ [{recordedStatus}]");
+        }
+    }
+
+    [ContextMenu("æ¸…é™¤æ£€æŸ¥ç‚¹è®°å½•çŠ¶æ€")]
+    public void ClearRecordedStatus()
+    {
+        recordedCheckpoints.Clear();
+        Debug.Log("âœ… æ£€æŸ¥ç‚¹è®°å½•çŠ¶æ€å·²æ¸…é™¤ï¼Œä¸‹æ¬¡è¿›å…¥æ—¶ä¼šé‡æ–°è®°å½•");
+    }
+
+    [ContextMenu("åˆå§‹åŒ–æ£€æŸ¥ç‚¹0")]
+    public void ManualInitializeCheckpointZero()
+    {
+        InitializeCheckpointZero();
     }
 }

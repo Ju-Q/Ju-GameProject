@@ -52,7 +52,7 @@ public class ItemPickupManager : MonoBehaviour
                     {
                         SkillPointManager.Instance.maxSkillPoints = 6;
                         SkillPointManager.Instance.SetSkillPoints(6);
-                        Debug.Log("拾取了第3个 PropA，技能点上限提高至6并获得满点");
+                        //Debug.Log("拾取了第3个 PropA，技能点上限提高至6并获得满点");
                     }
                     else
                     {
